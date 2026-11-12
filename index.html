@@ -259,10 +259,11 @@ input[type=password]{width:100%;background:rgba(255,255,255,.75);border:1px soli
   </div>
   <div class="keybox reveal" id="keybox">
     <div class="kh"><b>🔑 Connect AI</b><span id="keyState" class="kstate">Not connected</span></div>
-    <p class="small" style="margin:6px 0 12px">Paste your Anthropic API key (get one at <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>). The key goes straight from your browser to Anthropic and is never sent to this site. One full run costs a few cents.</p>
+    <p class="small" style="margin:6px 0 12px" id="keyHelp"></p>
     <div class="row" style="margin-top:0">
-      <div style="grid-column:span 2"><input type="password" id="apikey" placeholder="sk-ant-..." autocomplete="off"></div>
-      <div><select id="model"><option value="claude-sonnet-5-5">Sonnet 5.5 (recommended)</option><option value="claude-haiku-5-5">Haiku 5.5 (cheapest)</option><option value="claude-opus-5-5">Opus 5.5 (best)</option></select></div>
+      <div><select id="provider"><option value="gemini">Google Gemini (FREE)</option><option value="anthropic">Anthropic Claude (paid)</option></select></div>
+      <div><input type="password" id="apikey" placeholder="Paste API key" autocomplete="off"></div>
+      <div><select id="model"></select></div>
     </div>
     <label class="small" style="display:flex;gap:8px;align-items:center;margin-top:10px;cursor:pointer"><input type="checkbox" id="remember"> Remember the key on this device (don't tick on a shared computer)</label>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px"><button class="btn sm" id="saveKey">Connect</button><button class="btn ghost sm" id="forgetKey">Forget key</button></div>
@@ -402,9 +403,10 @@ function errMsg(e){
   if (c==='refused') return "That request was declined. Try different input.";
   if (c==='cancelled') return "Stopped.";
   if (c==='no_ai') return "Connect your API key first (🔑 box at the top of step I).";
-  if (c==='bad_key') return "Anthropic rejected the API key. Check it and connect again.";
+  if (c==='bad_key') return "The API key was rejected. Check it in the 🔑 box and connect again.";
+  if (c==='free_limit') return "Free limit reached for now. Wait a minute (or until tomorrow for the daily limit), or switch to Flash-Lite in the 🔑 box.";
   if (c==='bad_model') return "That model isn't available on your key. Pick another model in the 🔑 box.";
-  if (c==='overloaded') return "Anthropic is busy right now. Try again in a minute.";
+  if (c==='overloaded') return "The AI service is busy right now. Try again in a minute.";
   if (c==='network') return e.message;
   if (c==='api') return "API error: " + e.message;
   return (e && e.message) ? "Something went wrong: "+e.message : "Something went wrong. Try again.";
@@ -420,12 +422,34 @@ const store = {
 const S = { text:"", image:null, profile:null, roles:[], selected:new Set(), jobs:null, current:null, tone:"confident and concise", out:null };
 /* AI layer: own API key (works anywhere, e.g. GitHub Pages) or claude.ai artifact runtime */
 let claudeSample = null, KEY = "";
-const KKEY = 'jobbloom-key', MKEY = 'jobbloom-model';
-try { KEY = localStorage.getItem(KKEY) || sessionStorage.getItem(KKEY) || ""; const m = localStorage.getItem(MKEY); if (m) $('#model').value = m; } catch(_){}
-if (KEY) { $('#apikey').value = KEY; try{ $('#remember').checked = !!localStorage.getItem(KKEY); }catch(_){} }
+const PROVIDERS = {
+  gemini: { models:[["gemini-flash-latest","Gemini Flash (recommended)"],["gemini-flash-lite-latest","Gemini Flash-Lite (fastest)"],["gemini-2.5-flash","Gemini 2.5 Flash"]],
+    help:'FREE: get a key at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> (sign in with Google, then Create API key, no card needed). Free tier has daily limits, and Google may use free-tier inputs to improve its products, so remove phone/address from the resume if that worries you.',
+    test: k => /^AIza[0-9A-Za-z_\-]{20,}$/.test(k), bad:"Gemini keys start with AIza..." },
+  anthropic: { models:[["claude-sonnet-5-5","Sonnet 5.5"],["claude-haiku-5-5","Haiku 5.5 (cheapest)"],["claude-opus-5-5","Opus 5.5 (best)"]],
+    help:'Paid: get a key at <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>. A full run costs a few cents.',
+    test: k => /^sk-ant-/.test(k), bad:"Anthropic keys start with sk-ant-..." }
+};
+const PKEY='jobbloom-provider', KKEY = p => 'jobbloom-key-'+p, MKEY = p => 'jobbloom-model-'+p;
+const prov = () => $('#provider').value;
+function loadProvider(){
+  const p = prov(), cfg = PROVIDERS[p];
+  $('#model').innerHTML = cfg.models.map(([v,l])=>`<option value="${v}">${l}</option>`).join("");
+  $('#keyHelp').innerHTML = cfg.help;
+  $('#apikey').placeholder = p==='gemini' ? "AIza..." : "sk-ant-...";
+  KEY = "";
+  try { KEY = localStorage.getItem(KKEY(p)) || sessionStorage.getItem(KKEY(p)) || "";
+        const m = localStorage.getItem(MKEY(p)); if (m && cfg.models.some(x=>x[0]===m)) $('#model').value = m;
+        $('#remember').checked = !!localStorage.getItem(KKEY(p)); } catch(_){}
+  $('#apikey').value = KEY;
+  if (typeof keyUI === 'function') keyUI();
+}
+try { const sp = localStorage.getItem(PKEY); if (sp && PROVIDERS[sp]) $('#provider').value = sp; } catch(_){}
+loadProvider();
+$('#provider').onchange = () => { try{ localStorage.setItem(PKEY, prov()); }catch(_){} loadProvider(); };
 function keyUI(){
   const ok = !!KEY || !!claudeSample;
-  $('#keyState').textContent = KEY ? "Connected ✓" : (claudeSample ? "Using your Claude account ✓" : "Not connected");
+  $('#keyState').textContent = KEY ? (prov()==='gemini' ? "Gemini connected ✓" : "Claude connected ✓") : (claudeSample ? "Using your Claude account ✓" : "Not connected");
   $('#keyState').classList.toggle('ok', ok);
   $('#noai').classList.toggle('hidden', ok);
 }
@@ -436,15 +460,16 @@ function keyUI(){
 keyUI();
 $('#saveKey').onclick = () => {
   const v = $('#apikey').value.trim();
-  if (!/^sk-ant-/.test(v)) { setStatus('#s1', "That doesn't look like an Anthropic key (it starts with sk-ant-).", 'err'); return; }
+  const p = prov();
+  if (!PROVIDERS[p].test(v)) { setStatus('#s1', "That doesn't look right. " + PROVIDERS[p].bad, 'err'); return; }
   KEY = v;
-  try { localStorage.removeItem(KKEY); sessionStorage.removeItem(KKEY);
-        ($('#remember').checked ? localStorage : sessionStorage).setItem(KKEY, v);
-        localStorage.setItem(MKEY, $('#model').value); } catch(_){}
+  try { localStorage.removeItem(KKEY(p)); sessionStorage.removeItem(KKEY(p));
+        ($('#remember').checked ? localStorage : sessionStorage).setItem(KKEY(p), v);
+        localStorage.setItem(MKEY(p), $('#model').value); localStorage.setItem(PKEY, p); } catch(_){}
   keyUI(); setStatus('#s1', "✓ AI connected."); toast("AI connected 🔑");
 };
-$('#forgetKey').onclick = () => { KEY=""; $('#apikey').value=""; try{ localStorage.removeItem(KKEY); sessionStorage.removeItem(KKEY);}catch(_){} keyUI(); toast("Key removed"); };
-$('#model').onchange = () => { try{ localStorage.setItem(MKEY, $('#model').value); }catch(_){} };
+$('#forgetKey').onclick = () => { KEY=""; $('#apikey').value=""; try{ localStorage.removeItem(KKEY(prov())); sessionStorage.removeItem(KKEY(prov()));}catch(_){} keyUI(); toast("Key removed"); };
+$('#model').onchange = () => { try{ localStorage.setItem(MKEY(prov()), $('#model').value); }catch(_){} };
 
 function parseJSONLoose(t){
   t = String(t||"").trim();
@@ -464,7 +489,34 @@ async function shrinkImage(file){
     return await new Promise(r=>c.toBlob(r,'image/jpeg',.88));
   } catch(_) { return file; }
 }
+async function callGemini(prompt, images){
+  const parts = [];
+  for (const img of (images||[])) { const b = await shrinkImage(img); parts.push({inline_data:{mime_type:b.type||"image/jpeg", data: await blobToB64(b)}}); }
+  parts.push({text: prompt + "\n\nReply with ONLY the JSON value."});
+  let r;
+  try {
+    r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent($('#model').value)}:generateContent`, {
+      method:"POST", headers:{"content-type":"application/json","x-goog-api-key":KEY},
+      body: JSON.stringify({contents:[{role:"user", parts}], generationConfig:{responseMimeType:"application/json", maxOutputTokens:8192, temperature:0.7}})});
+  } catch(e) { throw {code:'network', message:"Couldn't reach Google. Check your internet connection."}; }
+  const data = await r.json().catch(()=>({}));
+  if (!r.ok) {
+    const m = data?.error?.message || ("HTTP "+r.status), st = data?.error?.status || "";
+    if (r.status===400 && /API key|API_KEY/i.test(m)) throw {code:'bad_key', message:m};
+    if (r.status===401||r.status===403) throw {code:'bad_key', message:m};
+    if (r.status===429) throw {code:'free_limit', message:m};
+    if (r.status===404) throw {code:'bad_model', message:m};
+    if (r.status>=500) throw {code:'overloaded', message:m};
+    throw {code:'api', message:m};
+  }
+  const cand = data.candidates && data.candidates[0];
+  if (!cand) throw {code:'refused', message: data?.promptFeedback?.blockReason || "blocked"};
+  const text = (cand.content?.parts||[]).map(p=>p.text||"").join("");
+  if (!text.trim()) throw {code: cand.finishReason==="SAFETY" ? 'refused' : 'invalid_json'};
+  return parseJSONLoose(text);
+}
 const sample = { json: async (prompt, opts={}) => {
+  if (KEY && prov()==='gemini') return callGemini(prompt, opts.images);
   if (KEY) {
     const content = [];
     for (const img of (opts.images||[])) { const b = await shrinkImage(img); content.push({type:"image", source:{type:"base64", media_type:b.type||"image/jpeg", data: await blobToB64(b)}}); }
