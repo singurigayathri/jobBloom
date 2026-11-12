@@ -425,7 +425,7 @@ let claudeSample = null, KEY = "";
 const PROVIDERS = {
   gemini: { models:[["gemini-flash-latest","Gemini Flash (recommended)"],["gemini-flash-lite-latest","Gemini Flash-Lite (fastest)"],["gemini-2.5-flash","Gemini 2.5 Flash"]],
     help:'FREE: get a key at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> (sign in with Google, then Create API key, no card needed). Free tier has daily limits, and Google may use free-tier inputs to improve its products, so remove phone/address from the resume if that worries you.',
-    test: k => /^AIza[0-9A-Za-z_\-]{20,}$/.test(k), bad:"Gemini keys start with AIza..." },
+    test: k => /^(AIza[0-9A-Za-z_\-]{20,}|AQ\.[0-9A-Za-z_\-.]{20,})$/.test(k), bad:"Gemini keys start with AQ. (new) or AIza (old)." },
   anthropic: { models:[["claude-sonnet-5-5","Sonnet 5.5"],["claude-haiku-5-5","Haiku 5.5 (cheapest)"],["claude-opus-5-5","Opus 5.5 (best)"]],
     help:'Paid: get a key at <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>. A full run costs a few cents.',
     test: k => /^sk-ant-/.test(k), bad:"Anthropic keys start with sk-ant-..." }
@@ -436,7 +436,7 @@ function loadProvider(){
   const p = prov(), cfg = PROVIDERS[p];
   $('#model').innerHTML = cfg.models.map(([v,l])=>`<option value="${v}">${l}</option>`).join("");
   $('#keyHelp').innerHTML = cfg.help;
-  $('#apikey').placeholder = p==='gemini' ? "AIza..." : "sk-ant-...";
+  $('#apikey').placeholder = p==='gemini' ? "AQ.Ab... (or AIza...)" : "sk-ant-...";
   KEY = "";
   try { KEY = localStorage.getItem(KKEY(p)) || sessionStorage.getItem(KKEY(p)) || "";
         const m = localStorage.getItem(MKEY(p)); if (m && cfg.models.some(x=>x[0]===m)) $('#model').value = m;
