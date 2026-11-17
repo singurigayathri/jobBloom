@@ -420,7 +420,8 @@ code{font-size:12px;background:rgba(255,255,255,.07);padding:1px 6px;border-radi
     <div class="row"><div><label class="f">Provider</label><select id="provider"><option value="gemini">Google Gemini (FREE)</option><option value="anthropic">Anthropic Claude (paid)</option></select></div>
       <div><label class="f">Model</label><select id="model"></select></div></div>
     <div class="row"><div><label class="f">API key</label><input type="password" id="apikey" autocomplete="off" placeholder="Paste API key"></div></div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px"><button class="btn sm" id="saveKey">Save AI key</button><button class="btn ghost sm" id="forgetKey">Remove</button><button class="btn ghost sm" id="showKey">Show</button></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px"><button class="btn sm" id="saveKey">Save AI key</button><button class="btn ghost sm" id="forgetKey">Remove</button><button class="btn ghost sm" id="showKey">Show</button><button class="btn ghost sm" id="testAI">Test connection</button></div>
+    <div class="status" id="sAI"></div>
   </div>
 
   <h4>Live jobs · Apify <span class="chip-s" id="apifyState"><span class="dot"></span>Off</span></h4>
@@ -486,10 +487,11 @@ function errMsg(e){
     free_limit:"Free AI limit reached. Wait a minute, or try tomorrow if it's the daily limit." + m,
     bad_model:"That model isn't available on your key. Pick another in ⚙︎ Settings." + m,
     overloaded:"The AI is overloaded right now (tried 3 models). Wait 2–3 minutes and try again." + m,
+    timeout:"Google's AI didn't answer in time on any model. Wait a few minutes and try again, or check the key with ⚙︎ Settings → Test connection." + m,
     rate_limited:"Too many requests. Wait a minute and try again." + m,
     invalid_json:"The AI answer came back garbled. Try again.",
     refused:"The AI declined that request. Try different input.",
-    network:"Couldn't reach the service. Check your connection." + m,
+    network:"Your browser couldn't reach the AI. Turn off Brave Shields / ad-blocker / VPN for this site, or try Chrome. Use ⚙︎ Settings → Test connection to check." + m,
     not_granted:"AI access wasn't allowed for this page.",
     ap_none:"Add your Apify token in ⚙︎ Settings to pull live jobs.",
     ap_token:"Apify rejected the token. Copy it again from Apify → Settings → API & Integrations." + m,
@@ -579,6 +581,16 @@ $('#saveKey').onclick = () => {
   statusUI(); toast("AI key saved ✓");
 };
 $('#forgetKey').onclick = () => { CFG.aiKey=""; $('#apikey').value=""; LS.del(KK(prov())); statusUI(); toast("AI key removed"); };
+$('#testAI').onclick = async () => {
+  const v = $('#apikey').value.trim();
+  if (v && v !== CFG.aiKey) $('#saveKey').click();
+  if (!CFG.aiKey) { setStatus('#sAI', "Save a key first.", 'err'); return; }
+  setStatus('#sAI', "Testing", 'load');
+  if (location.protocol === 'file:') { setStatus('#sAI', "You opened the file from your computer. Open the github.io link instead.", 'err'); return; }
+  try { const r = await AI.json('Reply with only this JSON: {"ok":true}');
+    setStatus('#sAI', r && r.ok ? `✓ AI works (${prov()==='gemini' ? $('#model').value : 'Claude'}${GEM_MODE==='simple' ? ', using blocker-safe mode' : ''}).` : "Got an answer, but it looked odd. Try again.");
+  } catch(e){ setStatus('#sAI', errMsg(e), 'err'); }
+};
 $('#showKey').onclick = () => { const i=$('#apikey'), t=$('#apToken'); const show = i.type==='password'; i.type = t.type = show?'text':'password'; $('#showKey').textContent = show?'Hide':'Show'; };
 $('#apFast').onchange = () => LS.set('jb-ap-fast', $('#apFast').checked ? '1' : '0');
 $('#apSource').onchange = () => { $('#customBox').classList.toggle('hidden', $('#apSource').value!=='custom'); };
@@ -626,8 +638,8 @@ async function shrinkImage(file){
     const c = document.createElement('canvas'); c.width=Math.round(bmp.width*sc); c.height=Math.round(bmp.height*sc);
     c.getContext('2d').drawImage(bmp,0,0,c.width,c.height); return await new Promise(r=>c.toBlob(r,'image/jpeg',.88)); } catch(_) { return file; }
 }
-let aiNoteEl = null;
-const aiNote = t => { if (aiNoteEl) aiNoteEl.innerHTML = esc(t)+'<span class="dots"></span>'; };
+let aiNoteEl = null, AIT = null;
+const aiNote = t => { if (AIT) AIT.set(t); else if (aiNoteEl) aiNoteEl.innerHTML = esc(t)+'<span class="dots"></span>'; };
 
 async function callGemini(prompt, images){
   const chosen = $('#model').value;
@@ -635,12 +647,13 @@ async function callGemini(prompt, images){
   let lastErr;
   for (const model of chain){
     for (let attempt=0; attempt<2; attempt++){
+      aiNote(`Asking Google ${model}${attempt?" (retry)":""}`);
       try { return await callGeminiOnce(prompt, images, model); }
       catch(e){
         lastErr = e;
         if (['bad_key','refused','network'].includes(e.code)) throw e;
         if (e.code==='free_limit' && /per.?day|daily|PerDay/i.test(e.message||"")) break;
-        if (e.code==='bad_model' || e.code==='invalid_json') break;
+        if (e.code==='bad_model' || e.code==='invalid_json' || e.code==='timeout') break;
         aiNote(`AI is busy, retrying${model!==chosen?" with "+model:""}…`);
         await sleep(attempt===0 ? 2500 : 6000);
       }
@@ -648,16 +661,25 @@ async function callGemini(prompt, images){
   }
   throw lastErr;
 }
+let GEM_MODE = 'header', GEM_LAST_ERR = '';
 async function callGeminiOnce(prompt, images, model){
   const parts = [];
   for (const img of (images||[])) { const b = await shrinkImage(img); parts.push({inline_data:{mime_type:b.type||"image/jpeg", data: await blobToB64(b)}}); }
   parts.push({text: prompt + "\n\nReply with ONLY the JSON value."});
+  const body = JSON.stringify({contents:[{role:"user", parts}], generationConfig:{responseMimeType:"application/json", maxOutputTokens:8192, temperature:0.7}});
+  const base = `https://generativelanguage.googleapis.com/v1beta/models/${enc(model)}:generateContent`;
   let r;
-  try {
-    r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${enc(model)}:generateContent`, {
-      method:"POST", headers:{"content-type":"application/json","x-goog-api-key":CFG.aiKey},
-      body: JSON.stringify({contents:[{role:"user", parts}], generationConfig:{responseMimeType:"application/json", maxOutputTokens:8192, temperature:0.7}})});
-  } catch(e) { throw {code:'network', message:"generativelanguage.googleapis.com"}; }
+  const timed = (url, opt) => { const c = new AbortController(); const h = setTimeout(()=>c.abort(), 60000);
+    return fetch(url, {...opt, signal:c.signal}).finally(()=>clearTimeout(h)); };
+  const isAbort = e => e && (e.name==='AbortError' || /abort/i.test(e.message||""));
+  if (GEM_MODE !== 'simple') {
+    try { r = await timed(base, { method:"POST", headers:{"content-type":"application/json","x-goog-api-key":CFG.aiKey}, body }); }
+    catch(e) { if (isAbort(e)) throw {code:'timeout', message:model+" didn't answer in 60s"}; r = null; GEM_LAST_ERR = String(e && e.message || e); }
+  }
+  if (!r) {   // blocked (extension / VPN / preflight): retry as a "simple" request without custom headers
+    try { r = await timed(base + "?key=" + enc(CFG.aiKey), { method:"POST", headers:{"content-type":"text/plain;charset=UTF-8"}, body }); GEM_MODE = 'simple'; }
+    catch(e) { if (isAbort(e)) throw {code:'timeout', message:model+" didn't answer in 60s"}; throw {code:'network', message:"Google AI blocked or unreachable: " + (GEM_LAST_ERR || String(e && e.message || e))}; }
+  }
   const data = await r.json().catch(()=>({}));
   if (!r.ok) {
     const m = data?.error?.message || ("HTTP "+r.status);
@@ -813,7 +835,7 @@ $('#analyze').onclick = async () => {
   if (!S.text && !S.image) return setStatus('#s1', "Upload or paste a resume first.", 'err');
   if (!CFG.aiKey && !claudeSample) { openSettings(); return setStatus('#s1', "Connect your AI key first (⚙︎ Settings).", 'err'); }
   const btn = $('#analyze'); btn.disabled = true;
-  setStatus('#s1', "Reading the resume", 'load'); aiNoteEl = $('#s1');
+  AIT = startTimer($('#s1'), "Reading the resume");
   const loc = $('#loc').value.trim(), sen = $('#sen').value;
   const prompt = `You are an expert career coach and recruiter. Analyse the resume ${S.image ? "in the attached image" : "below"}.
 Target location: ${loc || "infer from resume"}. Seniority preference: ${sen || "infer from resume"}.
@@ -827,10 +849,11 @@ ${S.image ? "" : "RESUME:\n" + S.text.slice(0, 30000)}`;
     if (!p || !Array.isArray(p.suggested_roles)) throw {code:'invalid_json'};
     S.profile = p; S.roles = p.suggested_roles.map(r => ({title:r.title, why:r.why, fit:r.fit}));
     if (!$('#loc').value.trim() && p.location) $('#loc').value = p.location;
+    AIT.stop(); AIT = null;
     renderProfile(); setStatus('#s1', "✓ Resume read. Choose your titles below.");
     unlock('#roles'); go('#roles'); quest('portfolio'); badge('first');
-  } catch(e){ setStatus('#s1', errMsg(e), 'err'); }
-  aiNoteEl = null; btn.disabled = false;
+  } catch(e){ if (AIT) AIT.stop(); AIT = null; setStatus('#s1', errMsg(e), 'err'); }
+  btn.disabled = false;
 };
 function renderProfile(){
   const p = S.profile;
@@ -987,7 +1010,7 @@ $$('#tone .chip').forEach(c=>c.onclick=()=>{ $$('#tone .chip').forEach(x=>x.clas
 async function prepare(){
   if (!S.current) return;
   $('#prepBtn').disabled = true; $('#regen').disabled = true;
-  setStatus('#s4', "Writing your pitch for " + S.current.company, 'load'); aiNoteEl = $('#s4');
+  AIT = startTimer($('#s4'), "Writing your pitch for " + S.current.company);
   const jd = $('#jd').value.trim().slice(0, 15000), lang = $('#lang').value;
   const resumeBlock = S.text ? "RESUME:\n" + S.text.slice(0, 25000) : "RESUME SUMMARY (from image):\n" + JSON.stringify(S.profile);
   const prompt = `You are a top career coach. The candidate applies MANUALLY and sends a cold email herself/himself.
@@ -1005,10 +1028,10 @@ Return ONLY JSON:
   try {
     const o = await AI.json(prompt);
     if (!o || !o.email) throw {code:'invalid_json'};
-    S.out = o; renderPrep(); setStatus('#s4', "✓ Ready. Edit anything before you send.");
+    AIT.stop(); AIT = null; S.out = o; renderPrep(); setStatus('#s4', "✓ Ready. Edit anything before you send.");
     quest('pitch'); if (jd) quest('sharp'), badge('sharp');
-  } catch(e){ setStatus('#s4', errMsg(e), 'err'); }
-  aiNoteEl = null; $('#prepBtn').disabled = false; $('#regen').disabled = false;
+  } catch(e){ if (AIT) AIT.stop(); AIT = null; setStatus('#s4', errMsg(e), 'err'); }
+  $('#prepBtn').disabled = false; $('#regen').disabled = false;
 }
 $('#prepBtn').onclick = prepare; $('#regen').onclick = prepare;
 function renderPrep(){
