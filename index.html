@@ -196,6 +196,26 @@ label.f{display:block;font-size:11px;letter-spacing:.2em;text-transform:uppercas
 .gstats div b{font-family:var(--serif);font-size:42px;font-weight:500;color:var(--gold);display:block;line-height:1}
 .gstats div span{font-size:12px;color:var(--mute);letter-spacing:.1em;text-transform:uppercase}
 
+
+.resume-doc{background:#fbf8f3;color:#1d1a1c;border-radius:14px;padding:34px 38px;font-family:Georgia,serif;line-height:1.45;outline:none}
+.resume-doc h1{font-family:var(--serif);font-size:30px;font-weight:600;margin:0;color:#1d1a1c}
+.resume-doc .rh{color:#8a6a2c;font-size:14px;margin:4px 0 2px;font-family:var(--sans);letter-spacing:.04em}
+.resume-doc .rc{font-size:12px;color:#555;font-family:var(--sans);margin-bottom:14px}
+.resume-doc h2{font-family:var(--sans);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:#8a6a2c;border-bottom:1px solid #e4d7bd;padding-bottom:4px;margin:18px 0 8px}
+.resume-doc p,.resume-doc li{font-size:13.5px}
+.resume-doc ul{padding-left:18px;margin:4px 0 10px}
+.resume-doc .job{display:block;border:0;padding:0;background:none;margin-bottom:8px}
+.resume-doc .jt{display:flex;justify-content:space-between;gap:10px;font-weight:600;font-size:14px;flex-wrap:wrap}
+.resume-doc .jt span{font-weight:400;color:#666;font-size:12.5px;font-family:var(--sans)}
+.resume-doc .sk{display:flex;flex-wrap:wrap;gap:6px}
+.resume-doc .sk span{font-family:var(--sans);font-size:12px;border:1px solid #e4d7bd;border-radius:99px;padding:2px 10px;background:#fff}
+.hr{border:1px solid var(--line);border-radius:18px;padding:18px 20px;background:var(--card);margin-bottom:12px;display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start}
+.hr .co{font-family:var(--serif);font-size:22px}
+.hr .mail{display:inline-flex;gap:8px;align-items:center;margin:8px 8px 0 0;border:1px solid rgba(143,209,158,.4);color:var(--ok);border-radius:99px;padding:5px 12px;font-size:13px}
+.hr .person{font-size:13px;color:var(--ink);margin-top:8px}
+.hr .none{font-size:13px;color:var(--mute);margin-top:6px}
+.hr .acts{display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+@media(max-width:700px){.hr{grid-template-columns:1fr}.hr .acts{align-items:flex-start;flex-direction:row;flex-wrap:wrap}.resume-doc{padding:22px 18px}}
 /* HUD */
 .hud{position:fixed;right:16px;bottom:16px;z-index:60;background:rgba(21,16,21,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(220,180,108,.35);border-radius:20px;padding:12px 16px;width:min(280px,calc(100vw - 32px));box-shadow:0 20px 50px rgba(0,0,0,.5);cursor:pointer}
 .hud .lv{display:flex;align-items:center;gap:10px}
@@ -296,8 +316,8 @@ code{font-size:12px;background:rgba(255,255,255,.07);padding:1px 6px;border-radi
     <div><label class="f">Where do you want to work?</label><input type="text" id="loc" placeholder="e.g. Vienna, Austria"></div>
     <div><label class="f">Seniority</label>
       <select id="sen"><option value="">Read it from the resume</option><option>Entry / Junior</option><option>Mid-level</option><option>Senior</option><option>Lead / Manager</option><option>Director+</option></select></div>
-    <div><label class="f">Letter language</label>
-      <select id="lang"><option>English</option><option>German</option><option>French</option><option>Spanish</option><option>Dutch</option></select></div>
+    <div><label class="f">Resume language</label>
+      <select id="lang"><option>English</option><option>German</option></select></div>
   </div>
   <button class="btn" id="analyze">Read my resume →</button>
   <div class="status" id="s1"></div>
@@ -328,6 +348,7 @@ code{font-size:12px;background:rgba(255,255,255,.07);padding:1px 6px;border-radi
   <div class="tabs">
     <button class="tab on" data-tab="live">🔴 Live jobs<span class="n" id="nLive">0</span></button>
     <button class="tab" data-tab="short">Target companies<span class="n" id="nShort">0</span></button>
+    <button class="tab" data-tab="hr">📇 HR contacts<span class="n" id="nHR">0</span></button>
   </div>
   <div id="tabLive">
     <p class="disclaimer">Real postings pulled through Apify, ranked against your resume by AI. Always check the ad is still open before you apply.</p>
@@ -337,13 +358,19 @@ code{font-size:12px;background:rgba(255,255,255,.07);padding:1px 6px;border-radi
     <p class="disclaimer">AI-suggested employers that fit your profile. These aren't confirmed openings, so use the job-board links to see what's live.</p>
     <div id="joblist"><div class="empty">Tap <b>Suggest target companies</b> in step II.</div></div>
   </div>
+  <div id="tabHR" class="hidden">
+    <p class="disclaimer">Contacts are taken only from what each job ad publishes (an email address or a named contact person). Nothing is guessed. If an ad has none, use the recruiter search links. Recruiters on LinkedIn usually reply faster than a generic inbox.</p>
+    <button class="btn" id="scanHR" style="margin-top:0">📇 Scan live job ads for HR contacts</button>
+    <div class="status" id="sHR"></div>
+    <div id="hrlist" style="margin-top:20px"><div class="empty">Pull live jobs first, then scan the ads here.</div></div>
+  </div>
 </section>
 
 <!-- IV -->
 <section class="stage locked" id="prep">
   <div class="stage-head">
     <span class="idx">IV.</span><h3>The pitch</h3>
-    <p>What to change, a cold email, and a motivation letter for the job you picked.</p>
+    <p>A tailored resume, the fixes, a cold email, a cover letter and a motivation letter for the job you picked, in English and German.</p>
   </div>
   <div class="target" id="targetName">Pick a job above.</div>
   <label class="f" style="margin-top:22px">The job ad (filled in automatically for live jobs; you can edit it)</label>
@@ -355,34 +382,70 @@ code{font-size:12px;background:rgba(255,255,255,.07);padding:1px 6px;border-radi
     <button class="chip" data-v="bold and memorable, still professional">Bold</button>
     <button class="chip" data-v="formal and polished">Formal</button>
   </div>
-  <button class="btn" id="prepBtn" disabled>Write my pitch →</button>
+  <button class="btn" id="prepBtn" disabled>Build my application kit →</button>
   <div class="status" id="s4"></div>
 
   <div id="prepOut" class="hidden">
     <div class="score">
-      <div class="ring"><svg width="120" height="120"><circle cx="60" cy="60" r="52" stroke="rgba(255,255,255,.08)" stroke-width="6" fill="none"/><circle id="ringc" cx="60" cy="60" r="52" stroke="url(#g)" stroke-width="6" fill="none" stroke-linecap="round" stroke-dasharray="327" stroke-dashoffset="327"/><defs><linearGradient id="g"><stop offset="0" stop-color="#f0b6c6"/><stop offset="1" stop-color="#dcb46c"/></linearGradient></defs></svg><b id="scoreNum">0</b></div>
-      <p id="verdict"></p>
+      <div class="ring"><svg width="120" height="120"><circle cx="60" cy="60" r="52" stroke="rgba(255,255,255,.08)" stroke-width="6" fill="none"/><circle id="ringc" cx="60" cy="60" r="52" stroke="url(#g)" stroke-width="6" fill="none" stroke-linecap="round" stroke-dasharray="327" stroke-dashoffset="327"/><defs><linearGradient id="g"><stop offset="0" stop-color="#f0b6c6"/><stop offset="1" stop-color="#dcb46c"/></linearGradient></defs></svg><b id="scoreNum">–</b></div>
+      <p id="verdict">Working on it…</p>
     </div>
-    <div class="grid2">
-      <div class="panel"><h6>What to change to get this job</h6><div id="changes"></div></div>
-      <div class="panel"><h6>Missing keywords · quick wins</h6><div class="tags" id="kw" style="margin-bottom:16px"></div><div id="wins"></div></div>
+    <div class="tabs" id="docTabs">
+      <button class="tab on" data-doc="fixes">Fixes</button>
+      <button class="tab" data-doc="resume">📄 Tailored resume</button>
+      <button class="tab" data-doc="email">✉️ Cold email</button>
+      <button class="tab" data-doc="cover">Cover letter · Anschreiben</button>
+      <button class="tab" data-doc="motivation">Motivation letter</button>
     </div>
-    <div class="panel" style="margin-top:20px">
-      <h6>Cold email <button class="btn ghost sm" data-copy="email">Copy</button></h6>
-      <div class="subj" id="subj"></div>
-      <div class="letter" id="email"></div>
-      <div class="sendrow">
-        <input type="email" id="to" placeholder="Recruiter / hiring manager email (you find this)">
-        <a class="btn sm" id="mailto" href="#" style="text-decoration:none">Open in mail app</a>
+    <div class="opts" id="langToggle" style="margin:-10px 0 18px">
+      <button class="chip on" data-l="en">🇬🇧 English</button><button class="chip" data-l="de">🇦🇹 Deutsch</button>
+    </div>
+
+    <div class="doc" data-doc="fixes">
+      <div class="grid2">
+        <div class="panel"><h6>What to change to get this job</h6><div id="changes"></div></div>
+        <div class="panel"><h6>Missing keywords · quick wins</h6><div class="tags" id="kw" style="margin-bottom:16px"></div><div id="wins"></div></div>
       </div>
-      <p class="small">Nothing is sent automatically. If the mail link doesn't open, copy the email instead.</p>
     </div>
-    <div class="panel" style="margin-top:20px">
-      <h6>Motivation letter <button class="btn ghost sm" data-copy="letter">Copy</button></h6>
-      <div class="letter serif" id="letter"></div>
+
+    <div class="doc hidden" data-doc="resume">
+      <div class="panel">
+        <h6>Tailored resume <span style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost sm" data-act="copy" data-t="resume">Copy</button><button class="btn ghost sm" data-act="doc" data-t="resume">Word</button><button class="btn ghost sm" data-act="pdf" data-t="resume">PDF / Print</button></span></h6>
+        <p class="small" style="margin:-6px 0 16px">Only your real experience, reworded and reordered for this ad. Click any text to edit it. <span id="resumeNote"></span></p>
+        <div id="resumeDoc" class="resume-doc"><div class="empty">Writing your tailored resume…</div></div>
+        <div id="resumeChanges" class="small" style="margin-top:14px"></div>
+      </div>
     </div>
+
+    <div class="doc hidden" data-doc="email">
+      <div class="panel">
+        <h6>Cold email <span style="display:flex;gap:8px"><button class="btn ghost sm" data-act="copy" data-t="email">Copy</button></span></h6>
+        <div class="subj" id="subj"></div>
+        <div class="letter" id="email" contenteditable="true"></div>
+        <div class="sendrow">
+          <input type="email" id="to" placeholder="HR email (from the HR contacts tab, or one you found)">
+          <a class="btn sm" id="mailto" href="#" style="text-decoration:none">Open in mail app</a>
+        </div>
+        <p class="small">Nothing is sent automatically. Attach your tailored resume (Word/PDF) yourself.</p>
+      </div>
+    </div>
+
+    <div class="doc hidden" data-doc="cover">
+      <div class="panel">
+        <h6><span id="coverTitle">Cover letter</span> <span style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost sm" data-act="copy" data-t="cover">Copy</button><button class="btn ghost sm" data-act="doc" data-t="cover">Word</button><button class="btn ghost sm" data-act="pdf" data-t="cover">PDF / Print</button></span></h6>
+        <div class="letter serif" id="cover" contenteditable="true"></div>
+      </div>
+    </div>
+
+    <div class="doc hidden" data-doc="motivation">
+      <div class="panel">
+        <h6><span id="motTitle">Motivation letter</span> <span style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost sm" data-act="copy" data-t="motivation">Copy</button><button class="btn ghost sm" data-act="doc" data-t="motivation">Word</button><button class="btn ghost sm" data-act="pdf" data-t="motivation">PDF / Print</button></span></h6>
+        <div class="letter serif" id="motivation" contenteditable="true"></div>
+      </div>
+    </div>
+
     <div style="display:flex;gap:10px;flex-wrap:wrap">
-      <button class="btn ghost" id="regen">Rewrite</button>
+      <button class="btn ghost" id="regen">Rewrite all</button>
       <a class="btn ghost hidden" id="applyLink" href="#" target="_blank" rel="noopener" style="text-decoration:none">Open the ad ↗</a>
       <button class="btn" id="markApplied">I applied, build my tower 🏙️</button>
       <a class="btn ghost" href="#jobs" style="text-decoration:none">← Back to jobs</a>
@@ -807,7 +870,8 @@ function normJob(it){
     title: String(title).trim(), company: String(company||"Company").trim(), url: String(url),
     location: it.location || it.jobLocation || "", posted: it.postedDate || it.postedAt || it.postedTimeAgo || it.postingDateParsed || "",
     salary: String(salary||""), desc: String(it.descriptionText || it.description || it.jobDescription || "").replace(/\s+/g,' ').trim(),
-    applicants: it.applicants || it.applicantCount || ""
+    applicants: it.applicants || it.applicantCount || "",
+    poster: (it.jobPosterName || it.recruiterName || it.posterName || it.hiringManager?.name || it.jobPoster?.name) ? { name: it.jobPosterName || it.recruiterName || it.posterName || it.hiringManager?.name || it.jobPoster?.name } : null
   };
 }
 
@@ -848,7 +912,8 @@ function resetRun(){
   $('#profile').innerHTML=''; $('#rolelist').innerHTML='';
   $('#joblist').innerHTML='<div class="empty">Tap <b>Suggest target companies</b> in step II.</div>';
   $('#livelist').innerHTML='<div class="empty">No live jobs yet. Tap <b>Pull live jobs</b> in step II.</div>';
-  $('#nLive').textContent='0'; $('#nShort').textContent='0';
+  $('#nLive').textContent='0'; $('#nShort').textContent='0'; $('#nHR').textContent='0';
+  $('#hrlist').innerHTML='<div class="empty">Pull live jobs first, then scan the ads here.</div>'; setStatus('#sHR','');
   $('#prepOut').classList.add('hidden'); $('#targetName').textContent='Pick a job above.'; $('#prepBtn').disabled=true; $('#jd').value='';
   ['#roles','#jobs','#prep'].forEach(id=>$(id).classList.add('locked'));
   ['#s1','#s2','#s4'].forEach(id=>setStatus(id,''));
@@ -898,8 +963,8 @@ function renderRoles(){
 $('#addRole').onclick = () => { const v=$('#customRole').value.trim(); if(!v) return; S.roles.push({title:v,why:"",fit:null}); S.selected.add(S.roles.length-1); $('#customRole').value=''; renderRoles(); };
 $('#customRole').addEventListener('keydown', e => { if (e.key==='Enter') $('#addRole').click(); });
 const selectedRoles = () => [...S.selected].map(i=>S.roles[i].title);
-function showTab(t){ $$('.tab').forEach(b=>b.classList.toggle('on', b.dataset.tab===t)); $('#tabLive').classList.toggle('hidden', t!=='live'); $('#tabShort').classList.toggle('hidden', t!=='short'); }
-$$('.tab').forEach(b => b.onclick = () => showTab(b.dataset.tab));
+function showTab(t){ $$('.tab[data-tab]').forEach(b=>b.classList.toggle('on', b.dataset.tab===t)); $('#tabLive').classList.toggle('hidden', t!=='live'); $('#tabShort').classList.toggle('hidden', t!=='short'); $('#tabHR').classList.toggle('hidden', t!=='hr'); if (t==='hr') renderHR(); }
+$$('.tab[data-tab]').forEach(b => b.onclick = () => showTab(b.dataset.tab));
 
 /* ================= III-a. live jobs ================= */
 $('#pullLive').onclick = async () => {
@@ -959,7 +1024,7 @@ function renderLive(){
       <div class="meta">${j.location?`<span class="tag">📍 ${esc(j.location)}</span>`:''}${j.posted?`<span class="tag">🕒 ${esc(j.posted)}</span>`:''}${j.salary?`<span class="tag">💰 ${esc(j.salary)}</span>`:''}</div>
       ${j.why?`<p>✦ ${esc(j.why)}</p>`:`<p>${esc(j.desc.slice(0,160))}${j.desc.length>160?'…':''}</p>`}
       ${j.gap?`<div class="gap">Gap: ${esc(j.gap)}</div>`:''}
-      <div class="acts"><button class="btn sm" data-live="${idx}">Pitch &amp; fixes</button><a class="btn ghost sm" style="text-decoration:none" href="${esc(j.url)}" target="_blank" rel="noopener">Open ad ↗</a></div>
+      <div class="acts"><button class="btn sm" data-live="${idx}">Application kit</button><a class="btn ghost sm" style="text-decoration:none" href="${esc(j.url)}" target="_blank" rel="noopener">Open ad ↗</a></div>
     </div>`;}).join("")}</div>`;
   $$('[data-live]').forEach(b=>b.onclick=()=>{
     const j = S.live[+b.dataset.live];
@@ -973,7 +1038,7 @@ async function loadDetail(j){
   const t = startTimer($('#s4'), "Loading the full job ad from LinkedIn");
   try { const d = await apifyDetail(j.url);
     if (d && d.desc){ j.desc = d.desc; if (!j.salary && d.salary) j.salary = d.salary;
-      if (S.current && S.current.key===j.key){ S.current.jd = d.desc; $('#jd').value = d.desc.slice(0,15000); } t.stop(); setStatus('#s4', "✓ Full job ad loaded. Tap Write my pitch."); }
+      if (S.current && S.current.key===j.key){ S.current.jd = d.desc; $('#jd').value = d.desc.slice(0,15000); } t.stop(); setStatus('#s4', "✓ Full job ad loaded. Tap Build my application kit."); }
     else { t.stop(); setStatus('#s4', "Couldn't load the description. Open the ad and paste it above for best results.", 'err'); }
   } catch(e){ t.stop(); setStatus('#s4', "Couldn't load the description (" + errMsg(e) + "). You can paste it above.", 'err'); }
   btn.disabled = false;
@@ -1023,7 +1088,7 @@ function renderShort(loc){
         return `<div class="job ${applied[key]?'applied':''}" data-key="${esc(key)}">
           <div class="top"><div><div class="co">${esc(c.company)}</div><div class="tt">${esc(c.title||r.role)}</div></div><span class="fit">${esc(c.fit??"")}</span></div>
           <p>${esc(c.why)}</p><div class="small" style="margin:0">Look on: ${esc(c.careers_hint||"careers site")}</div>
-          <div class="acts"><button class="btn sm" data-prep="${ri}-${ci}">Pitch &amp; fixes</button>
+          <div class="acts"><button class="btn sm" data-prep="${ri}-${ci}">Application kit</button>
           <a class="btn ghost sm" style="text-decoration:none" href="https://www.google.com/search?q=${enc(`${c.company} ${c.title||r.role} jobs ${loc||""}`)}" target="_blank" rel="noopener">Find posting ↗</a></div></div>`;}).join("")}</div></div>`).join("");
   $('#nShort').textContent = n;
   $$('[data-prep]').forEach(b=>b.onclick=()=>{ const [ri,ci]=b.dataset.prep.split('-').map(Number); const r=S.jobs.roles[ri], c=r.companies[ci];
@@ -1032,64 +1097,239 @@ function renderShort(loc){
 
 /* ================= IV. pitch ================= */
 function pickJob(j){
-  S.current = j; $('#targetName').innerHTML = `${esc(j.role)} <em>at</em> ${esc(j.company)}`;
+  S.current = j; S.out = null; S.resumeByLang = {};
+  $('#targetName').innerHTML = `${esc(j.role)} <em>at</em> ${esc(j.company)}`;
   $('#jd').value = (j.jd||"").slice(0,15000);
+  $('#to').value = j.to || "";
   $('#applyLink').classList.toggle('hidden', !j.url); if (j.url) $('#applyLink').href = j.url;
   $('#prepBtn').disabled = false; $('#prepOut').classList.add('hidden'); setStatus('#s4','');
   unlock('#prep'); go('#prep');
 }
 $$('#tone .chip').forEach(c=>c.onclick=()=>{ $$('#tone .chip').forEach(x=>x.classList.remove('on')); c.classList.add('on'); S.tone=c.dataset.v; });
+let DOC = 'fixes', DL = 'en';
+function showDoc(d){ DOC = d; $$('#docTabs .tab').forEach(b=>b.classList.toggle('on', b.dataset.doc===d)); $$('.doc').forEach(x=>x.classList.toggle('hidden', x.dataset.doc!==d));
+  $('#langToggle').classList.toggle('hidden', d==='fixes'); }
+$$('#docTabs .tab').forEach(b=>b.onclick=()=>showDoc(b.dataset.doc));
+$$('#langToggle .chip').forEach(c=>c.onclick=()=>{ $$('#langToggle .chip').forEach(x=>x.classList.remove('on')); c.classList.add('on'); DL = c.dataset.l; renderLetters(); renderResume(); });
+
+const RULES = `STRICT RULES: Use ONLY facts in the resume. Never invent employers, job titles, dates, degrees, certifications, tools, numbers or achievements. You MAY reword, reorder, regroup and emphasise real content to match the job, and use the job's vocabulary where it truthfully describes something in the resume. If a metric would help but is missing, write [add metric]. Sign with the candidate's real name.`;
+function ctx(){
+  const jd = $('#jd').value.trim().slice(0, 15000);
+  return { jd, block: `TARGET: "${S.current.role}" at ${S.current.company}. Location: ${$('#loc').value || S.profile?.location || ""}.
+${jd ? "JOB AD:\n" + jd : "No job ad given: assume what this role at this company typically requires."}
+${S.text ? "RESUME:\n" + S.text.slice(0, 22000) : "RESUME SUMMARY (from image):\n" + JSON.stringify(S.profile)}` };
+}
+async function genFixes(){
+  const c = ctx();
+  return AI.json(`You are a top career coach. ${c.block}
+${RULES}
+Tone for the email: ${S.tone}.
+Return ONLY JSON:
+{"match":integer 0-100,"verdict":string (2 honest sentences in English),
+"changes":[5-8 {"priority":"high"|"medium"|"low","area":string,"change":string (max 35 words, English)}],
+"missing_keywords":[up to 10],"quick_wins":[3 strings],
+"email":{"en":{"subject":string,"body":string (110-150 words, hook first line, 2 real proof points, ask for a 15-min call)},
+         "de":{"subject":string,"body":string (same email in natural business German, Sie-Form)}}}`);
+}
+async function genLetters(){
+  const c = ctx();
+  return AI.json(`You are an expert application writer for the Austrian/German and international job market. ${c.block}
+${RULES}
+Tone: ${S.tone}.
+Write FOUR documents:
+1. "cover_en": cover letter in English (formal letter: greeting, 3-4 paragraphs on fit for THIS role with evidence from the resume, closing). 250-330 words.
+2. "cover_de": Bewerbungsschreiben / Anschreiben in German (DACH conventions: Betreff line "Bewerbung als …", "Sehr geehrte Damen und Herren," unless a contact name is in the ad, Sie-Form, "Mit freundlichen Grüßen"). 250-330 words. Natural German, not a literal translation.
+3. "motivation_en": motivation letter in English: WHY this company and role, personal drive, values, what she/he wants to build there, how past experience led here. Different from the cover letter. 250-350 words.
+4. "motivation_de": Motivationsschreiben in German, same content idea, natural German, Sie-Form. 250-350 words.
+Separate paragraphs with \n\n. Return ONLY JSON: {"cover_en":string,"cover_de":string,"motivation_en":string,"motivation_de":string}`);
+}
+async function genResume(lang){
+  const c = ctx();
+  return AI.json(`You are an expert resume writer. Rewrite the candidate's resume TAILORED to the target job. ${c.block}
+${RULES}
+Additional resume rules: keep every real job, degree and certification (you may shorten less relevant ones); put the most relevant experience and skills first; rewrite bullets to highlight what matters for this job using strong verbs; copy contact details exactly as in the resume (omit any that are missing); no photo, no date of birth unless present.
+Write the resume in ${lang==='de' ? "German (DACH style headings: Berufserfahrung, Ausbildung, Kenntnisse, Zertifikate, Sprachen)" : "English"}.
+Return ONLY JSON:
+{"name":string,"headline":string,"contact":[strings exactly from resume],"summary":string (3-4 lines),
+"skills":[8-16 strings, most relevant first, only skills evidenced in the resume],
+"experience":[{"title":string,"company":string,"location":string,"dates":string,"bullets":[2-6 strings]}],
+"education":[{"degree":string,"school":string,"dates":string}],
+"certifications":[strings],"languages":[strings],"extras":[strings],
+"what_changed":[3-6 short English notes on what you emphasised or reordered]}`);
+}
 async function prepare(){
   if (!S.current) return;
   $('#prepBtn').disabled = true; $('#regen').disabled = true;
-  AIT = startTimer($('#s4'), "Writing your pitch for " + S.current.company);
-  const jd = $('#jd').value.trim().slice(0, 15000), lang = $('#lang').value;
-  const resumeBlock = S.text ? "RESUME:\n" + S.text.slice(0, 25000) : "RESUME SUMMARY (from image):\n" + JSON.stringify(S.profile);
-  const prompt = `You are a top career coach. The candidate applies MANUALLY and sends a cold email herself/himself.
-Target: "${S.current.role}" at ${S.current.company}. Location: ${$('#loc').value || S.profile.location || ""}.
-${jd ? "JOB DESCRIPTION:\n" + jd : "No job ad given: use what this role at this company typically requires, and say so in the verdict."}
-${resumeBlock}
-Write in ${lang} (the changes list in English). Tone: ${S.tone}.
-Rules: only real experience from the resume, never invent employers, numbers or skills. Where a metric would help but is missing, write [add metric]. Sign with the candidate's name.
-Return ONLY JSON:
-{"match":integer 0-100,"verdict":string (2 honest sentences: chances + biggest gap),
-"changes":[5-8 {"priority":"high"|"medium"|"low","area":string,"change":string (specific edit, max 35 words, may include a rewritten bullet)}],
-"missing_keywords":[up to 10 strings],"quick_wins":[3 strings, doable this week],
-"email":{"subject":string,"body":string (110-160 words, hook first line, 2 proof points from the resume, ask for a 15-min call)},
-"letter":string (motivation letter 250-350 words, 4 paragraphs separated by \\n\\n)}`;
-  try {
-    const o = await AI.json(prompt);
-    if (!o || !o.email) throw {code:'invalid_json'};
-    AIT.stop(); AIT = null; S.out = o; renderPrep(); setStatus('#s4', "✓ Ready. Edit anything before you send.");
-    quest('pitch'); if (jd) quest('sharp'), badge('sharp');
-  } catch(e){ if (AIT) AIT.stop(); AIT = null; setStatus('#s4', errMsg(e), 'err'); }
+  S.out = {}; S.resumeByLang = {};
+  $('#prepOut').classList.remove('hidden'); showDoc('fixes');
+  $('#verdict').textContent = "Working on it…"; $('#scoreNum').textContent = "–";
+  ['#changes','#wins','#kw','#subj','#email','#cover','#motivation'].forEach(id=>$(id).innerHTML='');
+  $('#resumeDoc').innerHTML = '<div class="empty">Writing your tailored resume…</div>'; $('#resumeChanges').innerHTML='';
+  const parts = {fixes:'…', resume:'…', letters:'…'};
+  const label = () => `Building your kit for ${S.current.company}: fixes ${parts.fixes} · resume ${parts.resume} · letters ${parts.letters}`;
+  AIT = startTimer($('#s4'), label());
+  const upd = () => AIT && AIT.set(label());
+  const rlang = $('#lang').value === 'German' ? 'de' : 'en';
+  const errs = [];
+  await Promise.all([
+    genFixes().then(o => { if (!o || !o.email) throw {code:'invalid_json'}; Object.assign(S.out, o); parts.fixes='✓'; upd(); renderFixes(); renderLetters(); })
+              .catch(e => { parts.fixes='✗'; errs.push(['Fixes & email', e]); upd(); }),
+    genResume(rlang).then(o => { if (!o || !o.experience) throw {code:'invalid_json'}; S.resumeByLang[rlang] = o; parts.resume='✓'; upd(); if (DL!==rlang){ DL=rlang; $$('#langToggle .chip').forEach(x=>x.classList.toggle('on', x.dataset.l===rlang)); } renderResume(); })
+              .catch(e => { parts.resume='✗'; errs.push(['Resume', e]); upd(); $('#resumeDoc').innerHTML='<div class="empty">The resume couldn\'t be generated. Tap Rewrite all.</div>'; }),
+    genLetters().then(o => { if (!o || !o.cover_en) throw {code:'invalid_json'}; Object.assign(S.out, o); parts.letters='✓'; upd(); renderLetters(); })
+              .catch(e => { parts.letters='✗'; errs.push(['Letters', e]); upd(); })
+  ]);
+  AIT.stop(); AIT = null;
+  if (!errs.length) { setStatus('#s4', "✓ Your application kit is ready: resume, cold email, cover letter and motivation letter in EN + DE. Edit anything before you send."); quest('pitch'); if ($('#jd').value.trim()) { quest('sharp'); badge('sharp'); } }
+  else if (errs.length < 3) { setStatus('#s4', `Partly ready. Failed: ${errs.map(x=>x[0]).join(", ")} (${errMsg(errs[0][1])}). Tap Rewrite all to retry.`, 'err'); quest('pitch'); }
+  else setStatus('#s4', errMsg(errs[0][1]), 'err');
   $('#prepBtn').disabled = false; $('#regen').disabled = false;
 }
 $('#prepBtn').onclick = prepare; $('#regen').onclick = prepare;
-function renderPrep(){
+
+function renderFixes(){
   const o = S.out, m = Math.max(0, Math.min(100, +o.match||0));
-  $('#prepOut').classList.remove('hidden');
   $('#verdict').textContent = o.verdict || "";
   $('#changes').innerHTML = (o.changes||[]).map(c=>`<div class="change"><span class="pri ${esc((c.priority||'low').toLowerCase())}">${esc(c.priority||'')}</span><div><b>${esc(c.area)}</b><span>${esc(c.change)}</span></div></div>`).join("");
   $('#kw').innerHTML = (o.missing_keywords||[]).map(k=>`<span class="tag">${esc(k)}</span>`).join("") || '<span class="tag">None major</span>';
   $('#wins').innerHTML = (o.quick_wins||[]).map((w,i)=>`<div class="change"><span class="pri low">${i+1}</span><div><span>${esc(w)}</span></div></div>`).join("");
-  $('#subj').textContent = "Subject: " + (o.email.subject||"");
-  $('#email').textContent = o.email.body||""; $('#letter').textContent = o.letter||"";
-  $('#email').contentEditable = true; $('#letter').contentEditable = true;
-  updateMailto();
   const ring = $('#ringc'), num = $('#scoreNum');
   if (window.gsap){ gsap.fromTo(ring,{strokeDashoffset:327},{strokeDashoffset:327-327*m/100,duration:1.6,ease:'power3.out'});
-    const c={v:0}; gsap.to(c,{v:m,duration:1.6,ease:'power3.out',onUpdate:()=>num.textContent=Math.round(c.v)});
-    gsap.from('#prepOut .panel',{y:40,opacity:0,stagger:.1,duration:.9,ease:'power3.out'}); }
+    const c={v:0}; gsap.to(c,{v:m,duration:1.6,ease:'power3.out',onUpdate:()=>num.textContent=Math.round(c.v)}); }
   else { ring.style.strokeDashoffset = 327-327*m/100; num.textContent = m; }
-  setTimeout(()=>$('#prepOut').scrollIntoView({behavior:'smooth',block:'start'}),300);
 }
-function updateMailto(){ if (!S.out) return; $('#mailto').href = `mailto:${enc($('#to').value.trim())}?subject=${enc(S.out.email.subject||"")}&body=${enc($('#email').innerText)}`; }
-$('#to').addEventListener('input', updateMailto); $('#email').addEventListener('input', updateMailto);
-$$('[data-copy]').forEach(b=>b.onclick=async()=>{
-  const txt = b.dataset.copy==='email' ? ($('#subj').textContent+"\n\n"+$('#email').innerText) : $('#letter').innerText;
-  try{ await navigator.clipboard.writeText(txt); toast("Copied ✓"); }catch(_){ toast("Copy blocked: select the text and copy it"); }
+function renderLetters(){
+  const o = S.out || {}, L = DL;
+  const em = o.email?.[L] || o.email?.en;
+  if (em){ $('#subj').textContent = (L==='de'?'Betreff: ':'Subject: ') + (em.subject||""); $('#email').textContent = em.body||""; }
+  if (o.cover_en) $('#cover').textContent = L==='de' ? (o.cover_de||"") : o.cover_en;
+  if (o.motivation_en) $('#motivation').textContent = L==='de' ? (o.motivation_de||"") : o.motivation_en;
+  $('#coverTitle').textContent = L==='de' ? "Bewerbungsschreiben (Anschreiben)" : "Cover letter";
+  $('#motTitle').textContent = L==='de' ? "Motivationsschreiben" : "Motivation letter";
+  updateMailto();
+}
+function resumeHTML(r){
+  const sec = (t, inner) => inner ? `<h2>${esc(t)}</h2>${inner}` : "";
+  const de = DL==='de';
+  const list = a => (a&&a.length) ? `<ul>${a.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>` : "";
+  return `<h1>${esc(r.name||"")}</h1><div class="rh">${esc(r.headline||"")}</div><div class="rc">${(r.contact||[]).map(esc).join(" · ")}</div>
+  ${sec(de?"Profil":"Profile", r.summary?`<p>${esc(r.summary)}</p>`:"")}
+  ${sec(de?"Kernkompetenzen":"Key skills", (r.skills||[]).length?`<div class="sk">${r.skills.map(x=>`<span>${esc(x)}</span>`).join("")}</div>`:"")}
+  ${sec(de?"Berufserfahrung":"Experience", (r.experience||[]).map(e=>`<div class="job"><div class="jt">${esc(e.title)}${e.company?` · ${esc(e.company)}`:""}<span>${esc([e.location,e.dates].filter(Boolean).join(" · "))}</span></div>${list(e.bullets)}</div>`).join(""))}
+  ${sec(de?"Ausbildung":"Education", (r.education||[]).map(e=>`<div class="jt" style="margin-bottom:4px">${esc(e.degree)}${e.school?` · ${esc(e.school)}`:""}<span>${esc(e.dates||"")}</span></div>`).join(""))}
+  ${sec(de?"Zertifikate":"Certifications", list(r.certifications))}
+  ${sec(de?"Sprachen":"Languages", list(r.languages))}
+  ${sec(de?"Weiteres":"Additional", list(r.extras))}`;
+}
+let resumeBusy = false;
+async function renderResume(){
+  const r = S.resumeByLang?.[DL];
+  if (r){ $('#resumeDoc').innerHTML = resumeHTML(r); $('#resumeDoc').contentEditable = true;
+    $('#resumeChanges').innerHTML = (r.what_changed||[]).length ? "<b style='color:var(--gold)'>What I tailored:</b> " + r.what_changed.map(esc).join(" · ") : "";
+    $('#resumeNote').textContent = ""; return; }
+  if (!S.current || !S.resumeByLang || !Object.keys(S.resumeByLang).length || resumeBusy) return;
+  resumeBusy = true;
+  $('#resumeDoc').innerHTML = `<div class="empty">Writing the ${DL==='de'?'German':'English'} version…</div>`;
+  const want = DL;
+  try { const o = await genResume(want); if (!o || !o.experience) throw {code:'invalid_json'}; S.resumeByLang[want] = o; }
+  catch(e){ if (DL===want) $('#resumeDoc').innerHTML = `<div class="empty">${esc(errMsg(e))}</div>`; resumeBusy=false; return; }
+  resumeBusy = false; if (DL===want) renderResume();
+}
+function docText(t){ return t==='resume' ? $('#resumeDoc').innerText : t==='email' ? ($('#subj').textContent+"\n\n"+$('#email').innerText) : $('#'+t).innerText; }
+function docHTML(t){
+  const name = (S.resumeByLang?.[DL]?.name || S.profile?.name || "").trim();
+  const body = t==='resume' ? $('#resumeDoc').innerHTML : `<div style="white-space:pre-wrap;font-family:Georgia,serif;font-size:12pt;line-height:1.55">${esc($('#'+t).innerText)}</div>`;
+  const css = `body{font-family:Georgia,serif;color:#1d1a1c;margin:2cm} h1{font-size:24pt;margin:0} h2{font-family:Arial,sans-serif;font-size:9pt;letter-spacing:2px;text-transform:uppercase;color:#8a6a2c;border-bottom:1px solid #e4d7bd;padding-bottom:3px;margin:14pt 0 6pt} .rh{color:#8a6a2c;font-family:Arial,sans-serif;font-size:11pt} .rc{font-family:Arial,sans-serif;font-size:9pt;color:#555;margin-bottom:10pt} .jt{font-weight:bold;font-size:11pt;display:flex;justify-content:space-between} .jt span{font-weight:normal;color:#666;font-size:9.5pt;margin-left:12pt} li,p{font-size:10.5pt} .sk span{display:inline-block;border:1px solid #e4d7bd;border-radius:10px;padding:1px 8px;margin:2px;font-family:Arial,sans-serif;font-size:9pt} .job{margin-bottom:6pt}`;
+  return { name, html: `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>${esc(t)}</title><style>${css}</style></head><body>${body}</body></html>` };
+}
+function fileName(t){
+  const n = (S.resumeByLang?.[DL]?.name || S.profile?.name || "Candidate").replace(/[^\w\- ]+/g,"").trim().replace(/\s+/g,"_");
+  const co = (S.current?.company||"").replace(/[^\w\- ]+/g,"").trim().replace(/\s+/g,"_");
+  const kind = {resume: DL==='de'?'Lebenslauf':'Resume', cover: DL==='de'?'Anschreiben':'Cover_Letter', motivation: DL==='de'?'Motivationsschreiben':'Motivation_Letter'}[t] || t;
+  return `${n}_${kind}_${co}`;
+}
+$$('[data-act]').forEach(b => b.onclick = async () => {
+  const t = b.dataset.t, act = b.dataset.act;
+  if (act==='copy'){ try{ await navigator.clipboard.writeText(docText(t)); toast("Copied ✓"); }catch(_){ toast("Copy blocked: select the text and copy it"); } return; }
+  const {html} = docHTML(t);
+  if (act==='doc'){
+    try { const blob = new Blob(['﻿', html], {type:'application/msword'}); const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = fileName(t) + '.doc'; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();}, 1500); toast("Word file downloaded ✓"); }
+    catch(_){ toast("Download blocked here. Use Copy instead."); }
+    return;
+  }
+  if (act==='pdf'){
+    const f = document.createElement('iframe'); f.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0'; document.body.appendChild(f);
+    f.contentDocument.open(); f.contentDocument.write(html.replace('<title>', '<title>' + fileName(t) + ' ')); f.contentDocument.close();
+    setTimeout(()=>{ try { f.contentWindow.focus(); f.contentWindow.print(); toast("Choose 'Save as PDF' in the print dialog"); } catch(_){ toast("Printing blocked here. Use Word or Copy."); } setTimeout(()=>f.remove(), 60000); }, 300);
+  }
 });
+function updateMailto(){ const subj = $('#subj').textContent.replace(/^(Subject|Betreff): /,''); $('#mailto').href = `mailto:${$('#to').value.trim().replace(/[^\w.@+\-,]/g,'')}?subject=${enc(subj)}&body=${enc($('#email').innerText)}`; }
+$('#to').addEventListener('input', updateMailto); $('#email').addEventListener('input', updateMailto);
+
+/* ================= HR contacts ================= */
+const EMAIL_RE = /[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}/gi;
+const BAD_MAIL = /(noreply|no-reply|donotreply|example\.|privacy|datenschutz|dsgvo|gdpr|support@|abuse@)/i;
+const CONTACT_RE = /(Ansprechpartner(?:in)?|Ansprechperson|Kontaktperson|Kontakt|Contact person|Your contact|Recruiter|Talent Acquisition|HR Business Partner|Questions\?|Fragen\?)[:\s\-–]+([^\n]{3,160})/gi;
+function cutSentence(t){
+  const ABBR = /^(Mag|Dr|Ing|DI|Prof|MSc|BSc|MA|BA|Mr|Mrs|Ms|Hr|Fr|bzw|ca|z\.B|inkl|Tel|Nr)$/;
+  const re = /([^\s]+)\.(\s|$)/g; let m, out = t;
+  while ((m = re.exec(t))){ const w = m[1].replace(/[^A-Za-zÄÖÜäöüß.]/g,''); if (!ABBR.test(w)) { out = t.slice(0, m.index + m[1].length); break; } }
+  return out.replace(EMAIL_RE,'').replace(/\s+/g,' ').slice(0,140).trim();
+}
+function extractContacts(j){
+  const txt = j.desc || "";
+  const emails = [...new Set((txt.match(EMAIL_RE)||[]).map(x=>x.replace(/[.,;:)]+$/,'').toLowerCase()).filter(x=>!BAD_MAIL.test(x)))].slice(0,3);
+  const people = []; let m; CONTACT_RE.lastIndex = 0;
+  while ((m = CONTACT_RE.exec(txt)) && people.length < 2){ const line = (m[1] + ": " + cutSentence(m[2])).replace(/\s+/g,' ').replace(/[,;:\s]+$/,'').trim(); if (!people.some(p=>p===line)) people.push(line); }
+  if (j.poster?.name) people.unshift("Posted by: " + j.poster.name);
+  return { emails, people };
+}
+function renderHR(){
+  const list = S.live.filter(j => j.scanned || j.desc).map(j => ({j, c: extractContacts(j)}))
+    .sort((a,b)=> (b.c.emails.length - a.c.emails.length) || (b.c.people.length - a.c.people.length) || ((b.j.fit??0)-(a.j.fit??0)));
+  const withMail = list.filter(x=>x.c.emails.length).length;
+  $('#nHR').textContent = withMail;
+  if (!list.length){ $('#hrlist').innerHTML = '<div class="empty">Pull live jobs first, then scan the ads here.</div>'; return; }
+  const city = (cleanLoc($('#loc').value || S.profile?.location || "").split(',')[0]) || "";
+  $('#hrlist').innerHTML = list.map(({j,c}) => { const idx = S.live.indexOf(j);
+    const li = `https://www.linkedin.com/search/results/people/?keywords=${enc(`recruiter OR "talent acquisition" ${j.company} ${city}`)}`;
+    const gq = `https://www.google.com/search?q=${enc(`"${j.company}" ${city} karriere kontakt HR email`)}`;
+    return `<div class="hr"><div>
+      <div class="co">${esc(j.company)}</div><div class="tt" style="color:var(--gold);font-size:14px">${esc(j.title)}${j.fit!=null?` · fit ${j.fit}`:""}</div>
+      ${c.emails.map(e=>`<span class="mail">✉ ${esc(e)} <button class="btn ghost sm" style="padding:2px 8px" data-copymail="${esc(e)}">Copy</button></span>`).join("")}
+      ${c.people.map(p=>`<div class="person">👤 ${esc(p)}</div>`).join("")}
+      ${!c.emails.length && !c.people.length ? `<div class="none">No contact published in this ad. Use the recruiter search, or apply through the ad.</div>` : ""}
+    </div><div class="acts">
+      ${c.emails.length ? `<button class="btn sm" data-hruse="${idx}" data-mail="${esc(c.emails[0])}">Write cold email →</button>` : `<button class="btn ghost sm" data-hruse="${idx}" data-mail="">Write application →</button>`}
+      <a class="btn ghost sm" style="text-decoration:none" href="${esc(li)}" target="_blank" rel="noopener">Find recruiter on LinkedIn ↗</a>
+      <a class="btn ghost sm" style="text-decoration:none" href="${esc(gq)}" target="_blank" rel="noopener">Search HR contact ↗</a>
+      <a class="btn ghost sm" style="text-decoration:none" href="${esc(j.url)}" target="_blank" rel="noopener">Open ad ↗</a>
+    </div></div>`; }).join("");
+  $$('[data-copymail]').forEach(b=>b.onclick=async()=>{ try{ await navigator.clipboard.writeText(b.dataset.copymail); toast("Email copied ✓"); }catch(_){ toast(b.dataset.copymail); } });
+  $$('[data-hruse]').forEach(b=>b.onclick=()=>{ const j = S.live[+b.dataset.hruse];
+    pickJob({role:j.title, company:j.company, key:j.key, url:j.url, jd:j.desc, to:b.dataset.mail});
+    toast(b.dataset.mail ? "HR email filled in. Tap Build my application kit" : "Tap Build my application kit"); });
+}
+$('#scanHR').onclick = async () => {
+  if (!S.live.length) return setStatus('#sHR', "Pull live jobs first (step II).", 'err');
+  const need = S.live.filter(j => !j.desc && !j.scanned).slice(0, 40);
+  const btn = $('#scanHR'); btn.disabled = true;
+  if (need.length && CFG.apToken && $('#apSource').value==='linkedin'){
+    const t = startTimer($('#sHR'), `Reading ${need.length} job ads for contacts`);
+    try {
+      const got = await apifyRun(SOURCES.linkedin.actor, { jobUrls: need.map(j=>j.url), includeDescription:true, maxJobs: need.length }, need.length);
+      const byKey = Object.fromEntries(got.map(g=>[g.url.split('?')[0], g]));
+      for (const j of need){ const g = byKey[j.key] || got.find(x=>x.title===j.title && x.company===j.company); if (g){ j.desc = g.desc || j.desc; if (g.poster) j.poster = g.poster; if (!j.salary && g.salary) j.salary = g.salary; } j.scanned = true; }
+      t.stop();
+    } catch(e){ t.stop(); setStatus('#sHR', errMsg(e), 'err'); btn.disabled=false; renderHR(); return; }
+  }
+  S.live.forEach(j => j.scanned = true);
+  renderHR();
+  const n = S.live.filter(j=>extractContacts(j).emails.length).length, p = S.live.filter(j=>extractContacts(j).people.length).length;
+  setStatus('#sHR', `✓ Scanned ${S.live.length} ads: ${n} with an HR email, ${p} with a named contact. For the rest, use the recruiter search links.`);
+  btn.disabled = false;
+};
 
 /* ================= game: titles & empire ================= */
 const LEVELS = [[0,"Intern"],[100,"Associate"],[250,"Manager"],[450,"Director"],[700,"VP"],[1000,"C-Suite"],[1500,"Mogul"]];
