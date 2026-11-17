@@ -216,6 +216,22 @@ label.f{display:block;font-size:11px;letter-spacing:.2em;text-transform:uppercas
 .hr .none{font-size:13px;color:var(--mute);margin-top:6px}
 .hr .acts{display:flex;flex-direction:column;gap:8px;align-items:flex-end}
 @media(max-width:700px){.hr{grid-template-columns:1fr}.hr .acts{align-items:flex-start;flex-direction:row;flex-wrap:wrap}.resume-doc{padding:22px 18px}}
+
+.job.wide{grid-column:1/-1}
+.tailor{margin-top:14px;border-top:1px solid var(--line);padding-top:16px}
+.tl-h{font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--gold);font-weight:500;margin-bottom:8px}
+.tl-ov{color:var(--ink);font-size:14px;margin-bottom:12px}
+.tl-list{display:grid;gap:8px}
+.tl-c{display:grid;grid-template-columns:auto 1fr;gap:12px;border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:rgba(255,255,255,.03);cursor:pointer;transition:.2s}
+.tl-c input{width:18px;height:18px;margin-top:2px;accent-color:#dcb46c}
+.tl-c.off{opacity:.4}
+.tl-sec{font-size:13px;font-weight:500;margin-bottom:4px}
+.tl-sec .tag{font-size:10px;padding:2px 8px;margin-right:6px;color:var(--gold);border-color:rgba(220,180,108,.4)}
+.tl-now{font-size:13px;color:var(--mute)}
+.tl-new{font-size:13.5px;color:var(--ink);margin-top:3px}
+.tl-why{font-size:12px;color:var(--gold);margin-top:3px}
+.tl-sub{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--mute);margin:16px 0 8px}
+.tl-acts{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:16px}
 /* HUD */
 .hud{position:fixed;right:16px;bottom:16px;z-index:60;background:rgba(21,16,21,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(220,180,108,.35);border-radius:20px;padding:12px 16px;width:min(280px,calc(100vw - 32px));box-shadow:0 20px 50px rgba(0,0,0,.5);cursor:pointer}
 .hud .lv{display:flex;align-items:center;gap:10px}
@@ -348,10 +364,10 @@ code{font-size:12px;background:rgba(255,255,255,.07);padding:1px 6px;border-radi
   <div class="tabs">
     <button class="tab on" data-tab="live">🔴 Live jobs<span class="n" id="nLive">0</span></button>
     <button class="tab" data-tab="short">Target companies<span class="n" id="nShort">0</span></button>
-    <button class="tab" data-tab="hr">📇 HR contacts<span class="n" id="nHR">0</span></button>
+    <button class="tab" data-tab="hr">📇 HR contacts<span class="n" id="nHR">–</span></button>
   </div>
   <div id="tabLive">
-    <p class="disclaimer">Real postings pulled through Apify, ranked against your resume by AI. Always check the ad is still open before you apply.</p>
+    <p class="disclaimer">Real postings pulled through Apify, ranked against your resume by AI. Tap <b>✂️ Tailor my resume</b> on a job: you'll see exactly what I'd change, approve it, and get the finished resume right under the job. Always check the ad is still open before you apply.</p>
     <div id="livelist"><div class="empty">No live jobs yet. Tap <b>Pull live jobs</b> in step II (needs your Apify token in ⚙︎ Settings).</div></div>
   </div>
   <div id="tabShort" class="hidden">
@@ -912,7 +928,7 @@ function resetRun(){
   $('#profile').innerHTML=''; $('#rolelist').innerHTML='';
   $('#joblist').innerHTML='<div class="empty">Tap <b>Suggest target companies</b> in step II.</div>';
   $('#livelist').innerHTML='<div class="empty">No live jobs yet. Tap <b>Pull live jobs</b> in step II.</div>';
-  $('#nLive').textContent='0'; $('#nShort').textContent='0'; $('#nHR').textContent='0';
+  $('#nLive').textContent='0'; $('#nShort').textContent='0'; $('#nHR').textContent='–';
   $('#hrlist').innerHTML='<div class="empty">Pull live jobs first, then scan the ads here.</div>'; setStatus('#sHR','');
   $('#prepOut').classList.add('hidden'); $('#targetName').textContent='Pick a job above.'; $('#prepBtn').disabled=true; $('#jd').value='';
   ['#roles','#jobs','#prep'].forEach(id=>$(id).classList.add('locked'));
@@ -1019,12 +1035,13 @@ function renderLive(){
   const list = [...S.live].sort((a,b)=>(b.fit??-1)-(a.fit??-1));
   $('#nLive').textContent = list.length;
   $('#livelist').innerHTML = `<div class="jobs">${list.map(j=>{ const idx = S.live.indexOf(j); return `
-    <div class="job ${applied[j.key]?'applied':''}" data-key="${esc(j.key)}">
+    <div class="job ${applied[j.key]?'applied':''} ${j.tailor?'wide':''}" data-key="${esc(j.key)}">
       <div class="top"><div><span class="live-badge">Live</span><div class="co" style="margin-top:6px">${esc(j.company)}</div><div class="tt">${esc(j.title)}</div></div>${j.fit!=null?`<span class="fit">${j.fit}</span>`:''}</div>
       <div class="meta">${j.location?`<span class="tag">📍 ${esc(j.location)}</span>`:''}${j.posted?`<span class="tag">🕒 ${esc(j.posted)}</span>`:''}${j.salary?`<span class="tag">💰 ${esc(j.salary)}</span>`:''}</div>
       ${j.why?`<p>✦ ${esc(j.why)}</p>`:`<p>${esc(j.desc.slice(0,160))}${j.desc.length>160?'…':''}</p>`}
       ${j.gap?`<div class="gap">Gap: ${esc(j.gap)}</div>`:''}
-      <div class="acts"><button class="btn sm" data-live="${idx}">Application kit</button><a class="btn ghost sm" style="text-decoration:none" href="${esc(j.url)}" target="_blank" rel="noopener">Open ad ↗</a></div>
+      <div class="acts"><button class="btn sm" data-tact="start" data-i="${idx}">✂️ Tailor my resume</button><button class="btn ghost sm" data-live="${idx}">Letters &amp; email</button><a class="btn ghost sm" style="text-decoration:none" href="${esc(j.url)}" target="_blank" rel="noopener">Open ad ↗</a></div>
+      ${j.tailor ? `<div class="tailor" id="tl-${idx}">${tailorHTML(j, idx)}</div>` : ''}
     </div>`;}).join("")}</div>`;
   $$('[data-live]').forEach(b=>b.onclick=()=>{
     const j = S.live[+b.dataset.live];
@@ -1032,6 +1049,123 @@ function renderLive(){
     if (!j.desc && CFG.apToken && $('#apSource').value==='linkedin') loadDetail(j);
   });
 }
+
+
+/* ================= per-job resume tailoring (plan → approve → resume) ================= */
+const TL_TIMERS = {};
+function tlTick(idx){
+  clearInterval(TL_TIMERS[idx]); const j = S.live[idx]; const t0 = Date.now();
+  TL_TIMERS[idx] = setInterval(() => { const el = document.getElementById('tls-'+idx); if (!j.tailor || !/loading/.test(j.tailor.stage)) { clearInterval(TL_TIMERS[idx]); return; }
+    if (el) el.innerHTML = esc(j.tailor.msg||"Working") + ` · <b>${Math.round((Date.now()-t0)/1000)}s</b><span class="dots"></span>`; }, 1000);
+}
+function tailorHTML(j, idx){
+  const t = j.tailor, langSel = `<select class="tl-lang" data-i="${idx}" style="width:auto;padding:8px 12px"><option value="en" ${t.lang==='en'?'selected':''}>Resume in English</option><option value="de" ${t.lang==='de'?'selected':''}>Lebenslauf auf Deutsch</option></select>`;
+  if (/loading/.test(t.stage)) return `<div class="status" id="tls-${idx}">${esc(t.msg||"Working")}<span class="dots"></span></div>`;
+  if (t.stage==='error') return `<div class="status err">${esc(t.err)}</div><div class="tl-acts"><button class="btn sm" data-tact="${t.retry||'start'}" data-i="${idx}">Try again</button><button class="btn ghost sm" data-tact="close" data-i="${idx}">Close</button></div>`;
+  if (t.stage==='plan'){
+    const p = t.plan;
+    return `<h6 class="tl-h">Step 1 · What I'll change in your resume for this job</h6>
+      <p class="tl-ov">${esc(p.overview||"")}</p>
+      <div class="tl-list">${(p.changes||[]).map((c,k)=>`<label class="tl-c ${t.off?.includes(k)?'off':''}">
+        <input type="checkbox" data-tact="toggle" data-i="${idx}" data-k="${k}" ${t.off?.includes(k)?'':'checked'}>
+        <div><div class="tl-sec"><span class="tag">${esc(c.action||"Change")}</span> ${esc(c.section||"")}</div>
+        ${c.now?`<div class="tl-now"><b>Now:</b> ${esc(c.now)}</div>`:''}
+        <div class="tl-new"><b>→ Change to:</b> ${esc(c.proposed||"")}</div>
+        ${c.why?`<div class="tl-why">Why: ${esc(c.why)}</div>`:''}</div></label>`).join("")}</div>
+      ${(p.keywords||[]).length?`<div class="tl-sub">Job keywords you can truthfully use</div><div class="tags">${p.keywords.map(k=>`<span class="tag">${esc(k)}</span>`).join("")}</div>`:''}
+      ${(p.gaps||[]).length?`<div class="tl-sub" style="color:var(--blush)">Gaps I will NOT add (they're not in your resume)</div><div class="tags">${p.gaps.map(k=>`<span class="tag" style="border-color:rgba(240,182,198,.4);color:var(--blush)">${esc(k)}</span>`).join("")}</div>`:''}
+      <div class="tl-acts">${langSel}<button class="btn sm" data-tact="approve" data-i="${idx}">✓ Yes, make these changes</button><button class="btn ghost sm" data-tact="start" data-i="${idx}">Suggest again</button><button class="btn ghost sm" data-tact="close" data-i="${idx}">Cancel</button></div>`;
+  }
+  if (t.stage==='done'){
+    return `<h6 class="tl-h">Step 2 · Your tailored resume for ${esc(j.company)} ✓</h6>
+      <p class="small" style="margin:0 0 12px">Made ${t.applied} approved change${t.applied===1?'':'s'}. Click any text to edit it before you download. Read it once: every line must be true.</p>
+      <div class="resume-doc" id="tlr-${idx}" contenteditable="true" data-i="${idx}">${t.html || resumeHTML(t.resume, t.lang)}</div>
+      <div class="tl-acts">
+        <button class="btn sm" data-tact="word" data-i="${idx}">⬇ Word</button><button class="btn ghost sm" data-tact="pdf" data-i="${idx}">⬇ PDF / Print</button><button class="btn ghost sm" data-tact="copy" data-i="${idx}">Copy</button>
+        <a class="btn sm blush" style="text-decoration:none" href="${esc(j.url)}" target="_blank" rel="noopener">Open ad &amp; apply ↗</a>
+        <button class="btn ghost sm" data-tact="applied" data-i="${idx}">I applied 🏙️</button>
+        <button class="btn ghost sm" data-tact="replan" data-i="${idx}">Change the plan</button><button class="btn ghost sm" data-tact="close" data-i="${idx}">Close</button>
+      </div>`;
+  }
+  return "";
+}
+function tlRender(idx){ const box = document.getElementById('tl-'+idx); const j = S.live[idx];
+  if (!j.tailor){ renderLive(); return; }
+  if (box) { box.innerHTML = tailorHTML(j, idx); box.closest('.job')?.classList.add('wide'); } else renderLive();
+  if (/loading/.test(j.tailor.stage)) tlTick(idx); }
+async function ensureDesc(j){
+  if (j.desc || !CFG.apToken || $('#apSource').value!=='linkedin') return;
+  try { const d = await apifyDetail(j.url); if (d?.desc){ j.desc = d.desc; if (d.poster) j.poster = d.poster; } } catch(_){}
+}
+async function tlPlan(idx){
+  const j = S.live[idx];
+  if (!CFG.aiKey && !claudeSample) { openSettings(); return toast("Connect your AI key first"); }
+  if (!S.text && !S.profile) return toast("Upload your resume first (step I)");
+  j.tailor = Object.assign(j.tailor||{}, {stage:'plan-loading', msg: j.desc ? "Reading the ad and planning changes" : "Loading the full job ad", off:[], lang: j.tailor?.lang || ($('#lang').value==='German'?'de':'en')});
+  tlRender(idx); setTimeout(()=>document.getElementById('tl-'+idx)?.scrollIntoView({behavior:'smooth',block:'center'}), 100);
+  await ensureDesc(j); j.tailor.msg = "Reading the ad and planning changes";
+  const prompt = `You are an expert resume writer. Plan how to tailor the candidate's resume to THIS job. Do NOT write the resume yet.
+JOB: "${j.title}" at ${j.company} (${j.location||""}).
+${j.desc ? "JOB AD:\n" + j.desc.slice(0, 12000) : "No ad text available: plan from the title and what this role typically requires."}
+${S.text ? "RESUME:\n" + S.text.slice(0, 20000) : "RESUME SUMMARY:\n" + JSON.stringify(S.profile)}
+${RULES}
+Propose 6-12 concrete changes, most impactful first. Each change must refer to something that really exists in the resume.
+Return ONLY JSON:
+{"overview":string (2 sentences, English: overall angle for this job),
+"changes":[{"section":string (e.g. "Profile summary","Skills","Experience: <role> at <company>","Certifications","Order of sections"),
+  "action":"Rewrite"|"Reorder"|"Emphasise"|"Shorten"|"Remove"|"Add keyword"|"Rename",
+  "now":string (max 30 words: quote or describe what the resume says now),
+  "proposed":string (max 50 words: the exact new wording or what moves where),
+  "why":string (max 15 words: which job requirement this targets)}],
+"keywords":[up to 10 job keywords the resume can TRUTHFULLY use],
+"gaps":[up to 6 job requirements the resume does NOT show; these will NOT be added]}`;
+  try { const p = await AI.json(prompt); if (!p || !Array.isArray(p.changes)) throw {code:'invalid_json'};
+    j.tailor = Object.assign(j.tailor, {stage:'plan', plan:p, off:[]}); }
+  catch(e){ j.tailor = Object.assign(j.tailor, {stage:'error', err: errMsg(e), retry:'start'}); }
+  tlRender(idx);
+}
+async function tlResume(idx){
+  const j = S.live[idx], t = j.tailor;
+  const approved = t.plan.changes.filter((c,k)=>!t.off.includes(k));
+  if (!approved.length) return toast("Tick at least one change");
+  t.stage = 'resume-loading'; t.msg = `Writing your tailored resume (${approved.length} changes)`; tlRender(idx);
+  const lang = t.lang;
+  const prompt = `You are an expert resume writer. Rewrite the candidate's resume for "${j.title}" at ${j.company}, applying ONLY the approved changes below. Everything not covered by a change stays as in the original resume (you may tidy formatting).
+APPROVED CHANGES: ${JSON.stringify(approved)}
+${j.desc ? "JOB AD (context only):\n" + j.desc.slice(0, 8000) : ""}
+${S.text ? "ORIGINAL RESUME:\n" + S.text.slice(0, 20000) : "RESUME SUMMARY:\n" + JSON.stringify(S.profile)}
+${RULES}
+Keep every real job, degree and certification. Copy contact details exactly; omit missing ones. No photo, no date of birth unless present.
+Write it in ${lang==='de' ? "German (DACH headings and style)" : "English"}.
+Return ONLY JSON: {"name":string,"headline":string,"contact":[strings],"summary":string,"skills":[strings],
+"experience":[{"title":string,"company":string,"location":string,"dates":string,"bullets":[strings]}],
+"education":[{"degree":string,"school":string,"dates":string}],"certifications":[strings],"languages":[strings],"extras":[strings]}`;
+  try { const r = await AI.json(prompt); if (!r || !Array.isArray(r.experience)) throw {code:'invalid_json'};
+    Object.assign(t, {stage:'done', resume:r, html:null, applied:approved.length}); quest('pitch'); }
+  catch(e){ Object.assign(t, {stage:'error', err: errMsg(e), retry:'approve'}); t.stage='error'; t.retryPlan = true; }
+  tlRender(idx);
+}
+function tlFile(j){ const n = (j.tailor?.resume?.name || S.profile?.name || "Candidate").replace(/[^\w\- ]+/g,"").trim().replace(/\s+/g,"_");
+  return `${n}_${j.tailor?.lang==='de'?'Lebenslauf':'Resume'}_${(j.company||"").replace(/[^\w\- ]+/g,"").trim().replace(/\s+/g,"_")}`; }
+$('#livelist').addEventListener('change', e => {
+  const sel = e.target.closest('.tl-lang'); if (sel){ const j = S.live[+sel.dataset.i]; if (j.tailor) j.tailor.lang = sel.value; return; }
+  const cb = e.target.closest('input[data-tact="toggle"]'); if (cb){ const j = S.live[+cb.dataset.i], k = +cb.dataset.k;
+    j.tailor.off = cb.checked ? j.tailor.off.filter(x=>x!==k) : [...new Set([...j.tailor.off, k])]; cb.closest('.tl-c').classList.toggle('off', !cb.checked); }
+});
+$('#livelist').addEventListener('input', e => { const d = e.target.closest('.resume-doc[data-i]'); if (d){ const j = S.live[+d.dataset.i]; if (j.tailor) j.tailor.html = d.innerHTML; } });
+$('#livelist').addEventListener('click', async e => {
+  const b = e.target.closest('[data-tact]'); if (!b || b.dataset.tact==='toggle') return;
+  const idx = +b.dataset.i, j = S.live[idx], act = b.dataset.tact;
+  if (act==='start') return tlPlan(idx);
+  if (act==='approve') return j.tailor?.plan ? tlResume(idx) : tlPlan(idx);
+  if (act==='replan'){ j.tailor.stage = 'plan'; return tlRender(idx); }
+  if (act==='close'){ j.tailor = null; return renderLive(); }
+  const doc = document.getElementById('tlr-'+idx);
+  if (act==='word') return saveWord(wrapDoc(doc.innerHTML, tlFile(j)), tlFile(j));
+  if (act==='pdf') return printDoc(wrapDoc(doc.innerHTML, tlFile(j)), tlFile(j));
+  if (act==='copy'){ try{ await navigator.clipboard.writeText(doc.innerText); toast("Copied ✓"); }catch(_){ toast("Copy blocked: select the text and copy it"); } return; }
+  if (act==='applied') return applyJob({company:j.company, role:j.title, key:j.key, url:j.url});
+});
 
 async function loadDetail(j){
   const btn = $('#prepBtn'); btn.disabled = true;
@@ -1208,9 +1342,9 @@ function renderLetters(){
   $('#motTitle').textContent = L==='de' ? "Motivationsschreiben" : "Motivation letter";
   updateMailto();
 }
-function resumeHTML(r){
+function resumeHTML(r, lang){
   const sec = (t, inner) => inner ? `<h2>${esc(t)}</h2>${inner}` : "";
-  const de = DL==='de';
+  const de = (lang || DL)==='de';
   const list = a => (a&&a.length) ? `<ul>${a.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>` : "";
   return `<h1>${esc(r.name||"")}</h1><div class="rh">${esc(r.headline||"")}</div><div class="rc">${(r.contact||[]).map(esc).join(" · ")}</div>
   ${sec(de?"Profil":"Profile", r.summary?`<p>${esc(r.summary)}</p>`:"")}
@@ -1239,8 +1373,21 @@ function docText(t){ return t==='resume' ? $('#resumeDoc').innerText : t==='emai
 function docHTML(t){
   const name = (S.resumeByLang?.[DL]?.name || S.profile?.name || "").trim();
   const body = t==='resume' ? $('#resumeDoc').innerHTML : `<div style="white-space:pre-wrap;font-family:Georgia,serif;font-size:12pt;line-height:1.55">${esc($('#'+t).innerText)}</div>`;
+  return { name, html: wrapDoc(body, t) };
+}
+function wrapDoc(body, title){
   const css = `body{font-family:Georgia,serif;color:#1d1a1c;margin:2cm} h1{font-size:24pt;margin:0} h2{font-family:Arial,sans-serif;font-size:9pt;letter-spacing:2px;text-transform:uppercase;color:#8a6a2c;border-bottom:1px solid #e4d7bd;padding-bottom:3px;margin:14pt 0 6pt} .rh{color:#8a6a2c;font-family:Arial,sans-serif;font-size:11pt} .rc{font-family:Arial,sans-serif;font-size:9pt;color:#555;margin-bottom:10pt} .jt{font-weight:bold;font-size:11pt;display:flex;justify-content:space-between} .jt span{font-weight:normal;color:#666;font-size:9.5pt;margin-left:12pt} li,p{font-size:10.5pt} .sk span{display:inline-block;border:1px solid #e4d7bd;border-radius:10px;padding:1px 8px;margin:2px;font-family:Arial,sans-serif;font-size:9pt} .job{margin-bottom:6pt}`;
-  return { name, html: `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>${esc(t)}</title><style>${css}</style></head><body>${body}</body></html>` };
+  return `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>${esc(title)}</title><style>${css}</style></head><body>${body}</body></html>`;
+}
+function saveWord(html, name){
+  try { const blob = new Blob(['\ufeff', html], {type:'application/msword'}); const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = name + '.doc'; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();}, 1500); toast("Word file downloaded ✓"); }
+  catch(_){ toast("Download blocked here. Use Copy instead."); }
+}
+function printDoc(html, name){
+  const f = document.createElement('iframe'); f.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0'; document.body.appendChild(f);
+  f.contentDocument.open(); f.contentDocument.write(html.replace(/<title>[^<]*<\/title>/, '<title>' + esc(name) + '</title>')); f.contentDocument.close();
+  setTimeout(()=>{ try { f.contentWindow.focus(); f.contentWindow.print(); toast("Choose 'Save as PDF' in the print dialog"); } catch(_){ toast("Printing blocked here. Use Word or Copy."); } setTimeout(()=>f.remove(), 60000); }, 300);
 }
 function fileName(t){
   const n = (S.resumeByLang?.[DL]?.name || S.profile?.name || "Candidate").replace(/[^\w\- ]+/g,"").trim().replace(/\s+/g,"_");
@@ -1252,17 +1399,8 @@ $$('[data-act]').forEach(b => b.onclick = async () => {
   const t = b.dataset.t, act = b.dataset.act;
   if (act==='copy'){ try{ await navigator.clipboard.writeText(docText(t)); toast("Copied ✓"); }catch(_){ toast("Copy blocked: select the text and copy it"); } return; }
   const {html} = docHTML(t);
-  if (act==='doc'){
-    try { const blob = new Blob(['﻿', html], {type:'application/msword'}); const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob); a.download = fileName(t) + '.doc'; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();}, 1500); toast("Word file downloaded ✓"); }
-    catch(_){ toast("Download blocked here. Use Copy instead."); }
-    return;
-  }
-  if (act==='pdf'){
-    const f = document.createElement('iframe'); f.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0'; document.body.appendChild(f);
-    f.contentDocument.open(); f.contentDocument.write(html.replace('<title>', '<title>' + fileName(t) + ' ')); f.contentDocument.close();
-    setTimeout(()=>{ try { f.contentWindow.focus(); f.contentWindow.print(); toast("Choose 'Save as PDF' in the print dialog"); } catch(_){ toast("Printing blocked here. Use Word or Copy."); } setTimeout(()=>f.remove(), 60000); }, 300);
-  }
+  if (act==='doc') return saveWord(html, fileName(t));
+  if (act==='pdf') return printDoc(html, fileName(t));
 });
 function updateMailto(){ const subj = $('#subj').textContent.replace(/^(Subject|Betreff): /,''); $('#mailto').href = `mailto:${$('#to').value.trim().replace(/[^\w.@+\-,]/g,'')}?subject=${enc(subj)}&body=${enc($('#email').innerText)}`; }
 $('#to').addEventListener('input', updateMailto); $('#email').addEventListener('input', updateMailto);
@@ -1313,21 +1451,27 @@ function renderHR(){
 }
 $('#scanHR').onclick = async () => {
   if (!S.live.length) return setStatus('#sHR', "Pull live jobs first (step II).", 'err');
-  const need = S.live.filter(j => !j.desc && !j.scanned).slice(0, 40);
+  const need = S.live.filter(j => !j.desc && !j.scanned);
   const btn = $('#scanHR'); btn.disabled = true;
   if (need.length && CFG.apToken && $('#apSource').value==='linkedin'){
-    const t = startTimer($('#sHR'), `Reading ${need.length} job ads for contacts`);
-    try {
-      const got = await apifyRun(SOURCES.linkedin.actor, { jobUrls: need.map(j=>j.url), includeDescription:true, maxJobs: need.length }, need.length);
-      const byKey = Object.fromEntries(got.map(g=>[g.url.split('?')[0], g]));
-      for (const j of need){ const g = byKey[j.key] || got.find(x=>x.title===j.title && x.company===j.company); if (g){ j.desc = g.desc || j.desc; if (g.poster) j.poster = g.poster; if (!j.salary && g.salary) j.salary = g.salary; } j.scanned = true; }
-      t.stop();
-    } catch(e){ t.stop(); setStatus('#sHR', errMsg(e), 'err'); btn.disabled=false; renderHR(); return; }
+    const t = startTimer($('#sHR'), `Reading all ${need.length} job ads for HR contacts`);
+    const batches = []; for (let i=0;i<need.length;i+=40) batches.push(need.slice(i,i+40));
+    let err = null;
+    await Promise.all(batches.map(async batch => {
+      try {
+        const got = await apifyRun(SOURCES.linkedin.actor, { jobUrls: batch.map(j=>j.url), includeDescription:true, maxJobs: batch.length }, batch.length);
+        const byKey = Object.fromEntries(got.map(g=>[g.url.split('?')[0], g]));
+        for (const j of batch){ const g = byKey[j.key] || got.find(x=>x.title===j.title && x.company===j.company); if (g){ j.desc = g.desc || j.desc; if (g.poster) j.poster = g.poster; if (!j.salary && g.salary) j.salary = g.salary; } j.scanned = true; }
+      } catch(e){ err = e; }
+    }));
+    t.stop();
+    if (err && !need.some(j=>j.desc)) { setStatus('#sHR', errMsg(err), 'err'); btn.disabled=false; renderHR(); return; }
   }
   S.live.forEach(j => j.scanned = true);
   renderHR();
   const n = S.live.filter(j=>extractContacts(j).emails.length).length, p = S.live.filter(j=>extractContacts(j).people.length).length;
-  setStatus('#sHR', `✓ Scanned ${S.live.length} ads: ${n} with an HR email, ${p} with a named contact. For the rest, use the recruiter search links.`);
+  setStatus('#sHR', n ? `✓ Scanned ${S.live.length} ads: ${n} with an HR email, ${p} with a named contact. For the rest, use the recruiter search links.`
+    : `Scanned ${S.live.length} ads: none publish an email address${p?`, but ${p} name a contact person`:''}. That's normal for LinkedIn, where most ads only offer the Apply button. Use "Find recruiter on LinkedIn" on each card, or switch the source to Indeed in ⚙︎ Settings (Austrian Indeed ads list emails more often).`, n ? '' : 'err');
   btn.disabled = false;
 };
 
@@ -1396,11 +1540,11 @@ function renderCity(newest){
   if (newest && window.gsap) gsap.from('#city .bldg:last-child',{scaleY:0,duration:1.4,ease:'power4.out'});
   city.scrollLeft = city.scrollWidth; renderHUD();
 }
-$('#markApplied').onclick = () => {
-  if (!S.current) return;
-  if (G.towers.some(t=>t.key===S.current.key)) return toast("Already in your skyline for this job 🏙️");
-  G.towers.push({company:S.current.company, role:S.current.role, key:S.current.key, url:S.current.url||"", ts:Date.now()}); saveG();
-  $$('.job').forEach(j=>{ if (j.dataset.key===S.current.key) j.classList.add('applied'); });
+$('#markApplied').onclick = () => { if (S.current) applyJob(S.current); };
+function applyJob(cur){
+  if (G.towers.some(t=>t.key===cur.key)) return toast("Already in your skyline for this job 🏙️");
+  G.towers.push({company:cur.company, role:cur.role, key:cur.key, url:cur.url||"", ts:Date.now()}); saveG();
+  $$('.job').forEach(j=>{ if (j.dataset.key===cur.key) j.classList.add('applied'); });
   S.q.delete('move'); quest('move');
   const n = G.towers.length; badge('tower'); if (n>=5) badge('skyline'); if (n>=10) badge('empire'); if (streak()>=3) badge('streak');
   renderCity(true); setTimeout(()=>$('#empireSec').scrollIntoView({behavior:'smooth'}), 900);
