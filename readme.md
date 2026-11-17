@@ -1,22 +1,30 @@
-# 🌸 JobBloom
+# ♛ JobBloom: run your career like a CEO
 
-Upload a resume and get matched roles, target companies, live job-board searches, an honest list of what to change, and a cold email with a motivation letter. You apply manually. Every application plants a flower in your garden.
+Upload any resume and get:
+- **Live job ads** (LinkedIn or Indeed via Apify), ranked by AI against your resume
+- **Target companies** suggested by AI, with job-board links
+- **What to change** for each job: gaps, missing keywords, rewritten bullets
+- A **cold email** + **motivation letter** for that exact ad
+- **Your empire**: each application adds a tower to your skyline (XP, titles from Intern → Mogul, achievements)
 
-**Live site:** https://singurigayathri.github.io/jobs/
+You apply manually. Nothing is sent automatically.
 
-## How to use
-1. Get a **free** Gemini API key at https://aistudio.google.com/apikey (Google sign-in, no card), then paste it in the 🔑 box on the site. A paid Anthropic key works too.
-2. Upload a resume (PDF, DOCX, TXT or image) or paste the text.
-3. Pick roles → find companies → open a job → write your pitch.
-4. Apply yourself, then tap **I applied! Plant a flower 🌷**.
+**Live site:** https://singurigayathri.github.io/jobBloom/
+
+## Setup (all free)
+Open **⚙︎ Settings** on the site. Keys are stored only in your browser, never in this repo, and you can edit or remove them anytime.
+
+1. **AI:** free Gemini key from https://aistudio.google.com/apikey (starts with `AQ.` or `AIza`). Anthropic keys also work (paid).
+2. **Live jobs (optional):** free Apify account at https://apify.com. Copy the token from Settings → API & Integrations. The free plan includes $5/month of usage.
+   - Default source: `simple.actor/linkedin-jobs` (~$0.30 per 1,000 jobs)
+   - Alternative: `misceres/indeed-scraper` (set the country code, e.g. `AT`)
+   - Or any other Apify actor via **Custom actor**, using an input JSON with `{{query}}`, `{{location}}`, `{{count}}`, `{{country}}`, `{{posted}}`
 
 ## Privacy
-- Everything runs in your browser. There is no server and no database.
-- The resume and API key go only from your browser to the AI provider you pick (Google Gemini or Anthropic). On Gemini's free tier, Google may use inputs to improve its products.
-- XP, badges and the garden are saved in this browser's local storage.
-- The key is kept for the session only, unless you tick "Remember on this device".
+- No server, no database. Everything runs in your browser.
+- Your resume goes only to the AI provider you choose. On Gemini's free tier, Google may use inputs to improve its products.
+- Keys are kept for the session only, unless you tick "Remember keys on this device".
 
 ## Notes
-- Companies are a strong-fit shortlist, not confirmed open postings. Use the job-board links to see what's live today.
-- With Gemini it's free within Google's daily limits. With Anthropic, a full run costs a few cents.
-- Single file: `index.html`. To change anything, edit it and push. GitHub Pages redeploys on its own.
+- Scraping job sites can break when they change, so switch the source in Settings if one stops working. Check that the job board's terms are OK for your use.
+- Single file: `index.html`. Edit it and push, and GitHub Pages redeploys on its own.
