@@ -4,7 +4,10 @@ Upload any resume and get:
 - **Live job ads** (LinkedIn or Indeed via Apify), ranked by AI against your resume
 - **Target companies** suggested by AI, with job-board links
 - **What to change** for each job: gaps, missing keywords, rewritten bullets
-- A **cold email** + **motivation letter** for that exact ad
+- An **application kit** for each job:
+  - a **tailored resume** (only your real experience, rewritten for the ad), downloadable as Word or PDF
+  - a **cold email**, a **cover letter (Anschreiben)** and a **motivation letter**, each in **English and German**
+- **HR contacts**: emails and contact persons that the job ads actually publish (never guessed), plus recruiter search links
 - **Your empire**: each application adds a tower to your skyline (XP, titles from Intern → Mogul, achievements)
 
 You apply manually. Nothing is sent automatically.
