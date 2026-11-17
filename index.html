@@ -518,7 +518,7 @@ const SOURCES = {
     input:v => ({ keywords:[v.query], locations: v.location ? [v.location] : [], maxJobs:v.count, includeDescription:!v.fast, postedWithin:v.posted }),
     detail:url => ({ jobUrls:[url], includeDescription:true, maxJobs:1 }) },
   indeed: { label:"Indeed · misceres/indeed-scraper (~$3 / 1k jobs)", actor:"misceres/indeed-scraper",
-    input:v => ({ position:v.query, country:v.country, location:v.location, maxItems:v.count, saveOnlyUniqueItems:true }) },
+    input:v => ({ position:v.query, country:v.country, location:String(v.location||"").split(',')[0].trim(), maxItems:v.count, saveOnlyUniqueItems:true }) },
   custom: { label:"Custom actor (advanced)", actor:null, input:null }
 };
 $('#apSource').innerHTML = Object.entries(SOURCES).map(([k,s])=>`<option value="${k}">${esc(s.label)}</option>`).join("");
@@ -730,10 +730,10 @@ function buildCustomInput(v){
   return JSON.parse(filled);
 }
 const fastMode = () => $('#apFast').checked && $('#apSource').value==='linkedin';
-async function apifySearch(query, location){
+async function apifySearch(query, location, postedOverride){
   if (!CFG.apToken) throw {code:'ap_none'};
   const src = $('#apSource').value, count = +$('#apCount').value || 20;
-  const v = { query, location, count, country:($('#apCountry').value||'AT').trim().toUpperCase(), posted:$('#apPosted').value, fast: fastMode() };
+  const v = { query, location, count, country:($('#apCountry').value||'AT').trim().toUpperCase(), posted: postedOverride || $('#apPosted').value, fast: fastMode() };
   const actor = src==='custom' ? $('#apActor').value.trim() : SOURCES[src].actor;
   const input = src==='custom' ? buildCustomInput(v) : SOURCES[src].input(v);
   return apifyRun(actor, input, count);
@@ -761,7 +761,34 @@ async function apifyRun(actorId, input, count){
     if (r.status===408 || r.status===504) throw {code:'ap_timeout', message:m};
     throw {code:'api', message:"Apify: " + m};
   }
-  return (Array.isArray(data) ? data : []).map(normJob).filter(Boolean);
+  const arr = Array.isArray(data) ? data : [];
+  const jobs = arr.map(normJob).filter(Boolean);
+  jobs._raw = arr.length;
+  jobs._errors = arr.filter(it => it && (it.type==='error' || it.error)).map(it => String(it.message || it.errorMessage || it.error || it.reason || "error row")).slice(0,3);
+  return jobs;
+}
+const COUNTRY = () => ($('#apCountry').value||'AT').trim().toUpperCase();
+function countryName(cc){ try { return new Intl.DisplayNames(['en'],{type:'region'}).of(cc) || ""; } catch(_) { return ""; } }
+function cleanLoc(loc){
+  loc = String(loc||"").trim().replace(/\s+/g,' ');
+  if (!loc) return "";
+  loc = loc.split(',').map(p => p.trim().replace(/\b\w/g, c => c.toUpperCase())).join(', ');
+  const cn = countryName(COUNTRY());
+  if (!loc.includes(',') && cn && loc.toLowerCase() !== cn.toLowerCase() && !/remote/i.test(loc)) loc = loc + ", " + cn;
+  return loc;
+}
+async function apifySearchSmart(role, loc, onNote){
+  const cn = countryName(COUNTRY());
+  const tries = [[cleanLoc(loc), $('#apPosted').value]];
+  if (cn && cleanLoc(loc).toLowerCase() !== cn.toLowerCase()) tries.push([cn, $('#apPosted').value]);
+  tries.push([tries[tries.length-1][0], "30 days"]);
+  const notes = []; let last = [];
+  for (const [l, posted] of tries){
+    last = await apifySearch(role, l, posted);
+    if (last.length) { if (notes.length) onNote && onNote(`"${role}": nothing in ${tries[0][0]}, widened to ${l}${posted!==tries[0][1]?" / last 30 days":""}`); return last; }
+    notes.push(l); if (last._errors.length) break;
+  }
+  return last;
 }
 function startTimer(el, label){
   const t0 = Date.now(); let lbl = label;
@@ -882,11 +909,12 @@ $('#pullLive').onclick = async () => {
   if (roles.length > 5) return setStatus('#s2', "Pick up to 5 roles per pull.", 'err');
   const btn = $('#pullLive'); btn.disabled = true;
   const loc = $('#loc').value.trim() || S.profile?.location || "";
-  const all = [], seen = new Set(), failed = []; let lastErr = null, done = 0, shown = false;
+  const all = [], seen = new Set(), failed = [], apErrs = [], notes = []; let lastErr = null, done = 0, shown = false, rawTotal = 0;
   const timer = startTimer($('#s2'), `Searching ${roles.length} role${roles.length>1?"s":""} on ${$('#apSource').value} at the same time (0/${roles.length} done)`);
   await Promise.all(roles.map(async role => {
     try {
-      const jobs = await apifySearch(role, loc);
+      const jobs = await apifySearchSmart(role, loc, n => notes.push(n));
+      rawTotal += jobs._raw || 0; if (jobs._errors?.length) apErrs.push(...jobs._errors);
       for (const j of jobs){ const key = j.url.split('?')[0]; if (seen.has(key)) continue; seen.add(key); j.role = role; j.key = key; all.push(j); }
       S.live = all.slice(); renderLive();
       if (!shown && all.length){ shown = true; unlock('#jobs'); showTab('live'); go('#jobs'); }
@@ -894,7 +922,11 @@ $('#pullLive').onclick = async () => {
     done++; timer.set(`Searching on ${$('#apSource').value}: ${done}/${roles.length} roles done, ${all.length} jobs so far`);
   }));
   const secs = timer.stop();
-  if (!all.length){ setStatus('#s2', errMsg(lastErr || {code:'ap_empty'}), 'err'); btn.disabled=false; return; }
+  if (!all.length){
+    let msg = lastErr ? errMsg(lastErr) : errMsg({code:'ap_empty'}) + ` (searched "${cleanLoc(loc)}" and ${countryName(COUNTRY()) || "the country"}.)`;
+    if (apErrs.length) msg += " Apify said: " + apErrs[0].slice(0,200);
+    else if (!lastErr && rawTotal===0) msg += " Tip: try simpler titles like \"IT Project Manager\", or switch the source to Indeed in ⚙︎ Settings.";
+    setStatus('#s2', msg, 'err'); btn.disabled=false; return; }
   quest('market'); badge('dealflow');
   if (CFG.aiKey || claudeSample){
     const t2 = startTimer($('#s2'), `Found ${all.length} jobs in ${secs}s. Ranking them against your resume`); aiNoteEl = null;
@@ -913,7 +945,7 @@ Return ONLY JSON: {"ranked":[{"id":string,"fit":integer,"why":string (max 14 wor
       } catch(e){ rankErr = e; }
     }));
     const s2 = t2.stop();
-    setStatus('#s2', rankErr ? `✓ ${all.length} live jobs found in ${secs}s, but ranking failed: ${errMsg(rankErr)}` : `✓ ${all.length} live jobs in ${secs + s2}s, ranked by fit.` + (failed.length ? ` (Couldn't load: ${failed.join(", ")})` : ""), rankErr ? 'err' : '');
+    setStatus('#s2', rankErr ? `✓ ${all.length} live jobs found in ${secs}s, but ranking failed: ${errMsg(rankErr)}` : `✓ ${all.length} live jobs in ${secs + s2}s, ranked by fit.` + (failed.length ? ` (Couldn't load: ${failed.join(", ")})` : "") + (notes.length ? " · " + notes.join(" · ") : ""), rankErr ? 'err' : '');
   } else setStatus('#s2', `✓ ${all.length} live jobs in ${secs}s (connect AI to rank them by fit).`);
   btn.disabled = false;
 };
