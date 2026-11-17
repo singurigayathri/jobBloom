@@ -429,12 +429,13 @@ code{font-size:12px;background:rgba(255,255,255,.07);padding:1px 6px;border-radi
     <div class="row"><div><label class="f">Apify API token</label><input type="password" id="apToken" autocomplete="off" placeholder="apify_api_..."></div></div>
     <div class="row">
       <div><label class="f">Job source</label><select id="apSource"></select></div>
-      <div><label class="f">Jobs per role</label><select id="apCount"><option>10</option><option selected>25</option><option>50</option><option>100</option></select></div>
+      <div><label class="f">Jobs per role</label><select id="apCount"><option>10</option><option selected>20</option><option>40</option><option>100</option></select></div>
     </div>
     <div class="row">
       <div><label class="f">Posted within</label><select id="apPosted"><option value="24 hours">24 hours</option><option value="3 days">3 days</option><option value="1 week" selected>1 week</option><option value="2 weeks">2 weeks</option><option value="30 days">30 days</option></select></div>
       <div><label class="f">Country code (Indeed)</label><input type="text" id="apCountry" maxlength="2" placeholder="AT"></div>
     </div>
+    <label class="check"><input type="checkbox" id="apFast" checked> <span><b style="color:var(--ink)">Fast mode</b>: list jobs without descriptions (about 10× faster), and load the full ad only when you tap Pitch. LinkedIn only.</span></label>
     <div id="customBox" class="hidden">
       <div class="row"><div><label class="f">Custom actor ID</label><input type="text" id="apActor" placeholder="username/actor-name"></div></div>
       <div class="row"><div><label class="f">Input JSON. Placeholders: {{query}} {{location}} {{count}} {{country}} {{posted}}</label>
@@ -512,7 +513,8 @@ const PROVIDERS = {
 };
 const SOURCES = {
   linkedin: { label:"LinkedIn · simple.actor/linkedin-jobs (~$0.30 / 1k jobs)", actor:"simple.actor/linkedin-jobs",
-    input:v => ({ keywords:[v.query], locations: v.location ? [v.location] : [], maxJobs:v.count, includeDescription:true, postedWithin:v.posted }) },
+    input:v => ({ keywords:[v.query], locations: v.location ? [v.location] : [], maxJobs:v.count, includeDescription:!v.fast, postedWithin:v.posted }),
+    detail:url => ({ jobUrls:[url], includeDescription:true, maxJobs:1 }) },
   indeed: { label:"Indeed · misceres/indeed-scraper (~$3 / 1k jobs)", actor:"misceres/indeed-scraper",
     input:v => ({ position:v.query, country:v.country, location:v.location, maxItems:v.count, saveOnlyUniqueItems:true }) },
   custom: { label:"Custom actor (advanced)", actor:null, input:null }
@@ -531,12 +533,13 @@ function loadSettings(){
   CFG.apToken = LS.secretGet('jb-apify');
   $('#apToken').value = CFG.apToken;
   $('#apSource').value = LS.get('jb-ap-source','linkedin');
-  $('#apCount').value = LS.get('jb-ap-count','25');
+  $('#apCount').value = LS.get('jb-ap-count','20');
   $('#apPosted').value = LS.get('jb-ap-posted','1 week');
   $('#apCountry').value = LS.get('jb-ap-country','AT');
   $('#apActor').value = LS.get('jb-ap-actor','');
   const ci = LS.get('jb-ap-input'); if (ci) $('#apInput').value = ci;
   $('#customBox').classList.toggle('hidden', $('#apSource').value!=='custom');
+  $('#apFast').checked = LS.get('jb-ap-fast','1') === '1';
   statusUI();
 }
 function loadProvider(){
@@ -577,6 +580,7 @@ $('#saveKey').onclick = () => {
 };
 $('#forgetKey').onclick = () => { CFG.aiKey=""; $('#apikey').value=""; LS.del(KK(prov())); statusUI(); toast("AI key removed"); };
 $('#showKey').onclick = () => { const i=$('#apikey'), t=$('#apToken'); const show = i.type==='password'; i.type = t.type = show?'text':'password'; $('#showKey').textContent = show?'Hide':'Show'; };
+$('#apFast').onchange = () => LS.set('jb-ap-fast', $('#apFast').checked ? '1' : '0');
 $('#apSource').onchange = () => { $('#customBox').classList.toggle('hidden', $('#apSource').value!=='custom'); };
 ['apCount','apPosted','apCountry','apActor','apInput','apSource'].forEach(id => $('#'+id).addEventListener('change', () => {
   LS.set({apCount:'jb-ap-count',apPosted:'jb-ap-posted',apCountry:'jb-ap-country',apActor:'jb-ap-actor',apInput:'jb-ap-input',apSource:'jb-ap-source'}[id], $('#'+id).value); statusUI();
@@ -703,12 +707,23 @@ function buildCustomInput(v){
   const filled = tpl.replace(/\{\{(\w+)\}\}/g, (m,k) => v[k]===undefined ? m : String(v[k]).replace(/["\\]/g,'\\$&'));
   return JSON.parse(filled);
 }
+const fastMode = () => $('#apFast').checked && $('#apSource').value==='linkedin';
 async function apifySearch(query, location){
   if (!CFG.apToken) throw {code:'ap_none'};
-  const src = $('#apSource').value, count = +$('#apCount').value || 25;
-  const v = { query, location, count, country:($('#apCountry').value||'AT').trim().toUpperCase(), posted:$('#apPosted').value };
-  const actor = (src==='custom' ? $('#apActor').value.trim() : SOURCES[src].actor).replace('/','~');
+  const src = $('#apSource').value, count = +$('#apCount').value || 20;
+  const v = { query, location, count, country:($('#apCountry').value||'AT').trim().toUpperCase(), posted:$('#apPosted').value, fast: fastMode() };
+  const actor = src==='custom' ? $('#apActor').value.trim() : SOURCES[src].actor;
   const input = src==='custom' ? buildCustomInput(v) : SOURCES[src].input(v);
+  return apifyRun(actor, input, count);
+}
+async function apifyDetail(url){
+  const src = $('#apSource').value;
+  if (src!=='linkedin' || !SOURCES.linkedin.detail) return null;
+  const jobs = await apifyRun(SOURCES.linkedin.actor, SOURCES.linkedin.detail(url), 1);
+  return jobs[0] || null;
+}
+async function apifyRun(actorId, input, count){
+  const actor = actorId.replace('/','~');
   let r;
   try {
     r = await fetch(`https://api.apify.com/v2/acts/${enc(actor)}/run-sync-get-dataset-items?timeout=240&maxItems=${count}&clean=true`, {
@@ -726,8 +741,14 @@ async function apifySearch(query, location){
   }
   return (Array.isArray(data) ? data : []).map(normJob).filter(Boolean);
 }
+function startTimer(el, label){
+  const t0 = Date.now(); let lbl = label;
+  const tick = () => { el.className='status'; el.innerHTML = esc(lbl) + ` · <b>${Math.round((Date.now()-t0)/1000)}s</b><span class="dots"></span>`; };
+  tick(); const h = setInterval(tick, 1000);
+  return { set:(l)=>{ lbl=l; tick(); }, stop:()=>{ clearInterval(h); return Math.round((Date.now()-t0)/1000); } };
+}
 function normJob(it){
-  if (!it || it.type==='error' || it.error) return null;
+  if (!it || it.type==='error' || it.error || it.isClosed===true || it.isExpired===true) return null;
   const title = it.title || it.positionName || it.jobTitle || it.position_name || "";
   const company = it.companyName || (typeof it.company==='string' ? it.company : it.company?.name) || it.employer || "";
   const url = it.jobUrl || it.link || it.url || it.applyUrl || it.externalApplyLink || "";
@@ -838,36 +859,39 @@ $('#pullLive').onclick = async () => {
   if (roles.length > 5) return setStatus('#s2', "Pick up to 5 roles per pull.", 'err');
   const btn = $('#pullLive'); btn.disabled = true;
   const loc = $('#loc').value.trim() || S.profile?.location || "";
-  const all = [], seen = new Set(), failed = [];
-  let lastErr = null;
-  for (let k=0;k<roles.length;k++){
-    setStatus('#s2', `Pulling live "${roles[k]}" jobs from ${$('#apSource').value} (${k+1}/${roles.length}). This can take up to a minute`, 'load');
+  const all = [], seen = new Set(), failed = []; let lastErr = null, done = 0, shown = false;
+  const timer = startTimer($('#s2'), `Searching ${roles.length} role${roles.length>1?"s":""} on ${$('#apSource').value} at the same time (0/${roles.length} done)`);
+  await Promise.all(roles.map(async role => {
     try {
-      const jobs = await apifySearch(roles[k], loc);
-      for (const j of jobs){ const key=(j.url.split('?')[0]) || (j.title+j.company); if (seen.has(key)) continue; seen.add(key); j.role = roles[k]; j.key = key; all.push(j); }
-    } catch(e){ lastErr = e; failed.push(roles[k]); if (['ap_token','ap_money','ap_actor','ap_input','ap_none'].includes(e.code)) break; }
-  }
+      const jobs = await apifySearch(role, loc);
+      for (const j of jobs){ const key = j.url.split('?')[0]; if (seen.has(key)) continue; seen.add(key); j.role = role; j.key = key; all.push(j); }
+      S.live = all.slice(); renderLive();
+      if (!shown && all.length){ shown = true; unlock('#jobs'); showTab('live'); go('#jobs'); }
+    } catch(e){ lastErr = e; failed.push(role); }
+    done++; timer.set(`Searching on ${$('#apSource').value}: ${done}/${roles.length} roles done, ${all.length} jobs so far`);
+  }));
+  const secs = timer.stop();
   if (!all.length){ setStatus('#s2', errMsg(lastErr || {code:'ap_empty'}), 'err'); btn.disabled=false; return; }
-  S.live = all; renderLive(); unlock('#jobs'); showTab('live'); go('#jobs'); quest('market'); badge('dealflow');
-  // rank with AI
+  quest('market'); badge('dealflow');
   if (CFG.aiKey || claudeSample){
-    setStatus('#s2', `Found ${all.length} live jobs. Ranking them against your resume`, 'load'); aiNoteEl = $('#s2');
-    try {
-      for (let start=0; start<all.length; start+=40){
-        const chunk = all.slice(start, start+40);
-        const list = chunk.map((j,i)=>({id:String(start+i), title:j.title, company:j.company, location:j.location, desc:j.desc.slice(0,500)}));
-        const prompt = `You are a sharp recruiter. Score how well this candidate fits each job (0-100), honestly.
-CANDIDATE: ${JSON.stringify({headline:S.profile.headline, summary:S.profile.summary, skills:S.profile.top_skills, years:S.profile.years_experience, seniority:$('#sen').value||S.profile.seniority})}
+    const t2 = startTimer($('#s2'), `Found ${all.length} jobs in ${secs}s. Ranking them against your resume`); aiNoteEl = null;
+    const cand = JSON.stringify({headline:S.profile.headline, summary:S.profile.summary, skills:S.profile.top_skills, years:S.profile.years_experience, seniority:$('#sen').value||S.profile.seniority});
+    const chunks = []; for (let st=0; st<all.length; st+=40) chunks.push(st);
+    let rankErr = null;
+    await Promise.all(chunks.map(async st => {
+      const list = all.slice(st, st+40).map((j,i)=>({id:String(st+i), title:j.title, company:j.company, location:j.location, desc:j.desc.slice(0,400)}));
+      const prompt = `You are a sharp recruiter. Score how well this candidate fits each job (0-100), honestly. Some jobs only have a title: judge from title, company and seniority.
+CANDIDATE: ${cand}
 JOBS: ${JSON.stringify(list)}
-Return ONLY JSON: {"ranked":[{"id":string,"fit":integer,"why":string (max 16 words, the strongest match),"gap":string (max 12 words, the biggest gap)}]} with one entry per job.`;
-        const r = await AI.json(prompt);
+Return ONLY JSON: {"ranked":[{"id":string,"fit":integer,"why":string (max 14 words),"gap":string (max 10 words)}]} with one entry per job.`;
+      try { const r = await AI.json(prompt);
         for (const x of (r?.ranked||[])){ const j = all[+x.id]; if (j){ j.fit = Math.max(0,Math.min(100,+x.fit||0)); j.why = x.why; j.gap = x.gap; } }
         renderLive();
-      }
-      setStatus('#s2', `✓ ${all.length} live jobs, ranked by fit.` + (failed.length ? ` (Couldn't load: ${failed.join(", ")})` : ""));
-    } catch(e){ setStatus('#s2', `✓ ${all.length} live jobs found, but ranking failed: ${errMsg(e)}`, 'err'); }
-    aiNoteEl = null;
-  } else setStatus('#s2', `✓ ${all.length} live jobs (connect AI to rank them by fit).`);
+      } catch(e){ rankErr = e; }
+    }));
+    const s2 = t2.stop();
+    setStatus('#s2', rankErr ? `✓ ${all.length} live jobs found in ${secs}s, but ranking failed: ${errMsg(rankErr)}` : `✓ ${all.length} live jobs in ${secs + s2}s, ranked by fit.` + (failed.length ? ` (Couldn't load: ${failed.join(", ")})` : ""), rankErr ? 'err' : '');
+  } else setStatus('#s2', `✓ ${all.length} live jobs in ${secs}s (connect AI to rank them by fit).`);
   btn.disabled = false;
 };
 function renderLive(){
@@ -885,9 +909,20 @@ function renderLive(){
   $$('[data-live]').forEach(b=>b.onclick=()=>{
     const j = S.live[+b.dataset.live];
     pickJob({role:j.title, company:j.company, key:j.key, url:j.url, jd:j.desc});
+    if (!j.desc && CFG.apToken && $('#apSource').value==='linkedin') loadDetail(j);
   });
 }
 
+async function loadDetail(j){
+  const btn = $('#prepBtn'); btn.disabled = true;
+  const t = startTimer($('#s4'), "Loading the full job ad from LinkedIn");
+  try { const d = await apifyDetail(j.url);
+    if (d && d.desc){ j.desc = d.desc; if (!j.salary && d.salary) j.salary = d.salary;
+      if (S.current && S.current.key===j.key){ S.current.jd = d.desc; $('#jd').value = d.desc.slice(0,15000); } t.stop(); setStatus('#s4', "✓ Full job ad loaded. Tap Write my pitch."); }
+    else { t.stop(); setStatus('#s4', "Couldn't load the description. Open the ad and paste it above for best results.", 'err'); }
+  } catch(e){ t.stop(); setStatus('#s4', "Couldn't load the description (" + errMsg(e) + "). You can paste it above.", 'err'); }
+  btn.disabled = false;
+}
 /* ================= III-b. AI target companies ================= */
 function boardLinks(q, loc){
   const ql = enc(q), ll = enc(loc||"");
