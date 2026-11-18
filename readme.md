@@ -4,10 +4,12 @@ Upload any resume and get:
 - **Live job ads** (LinkedIn or Indeed via Apify), ranked by AI against your resume
 - **Target companies** suggested by AI, with job-board links
 - **What to change** for each job: gaps, missing keywords, rewritten bullets
-- An **application kit** for each job:
-  - a **tailored resume** (only your real experience, rewritten for the ad), downloadable as Word or PDF
+- Everything **under each job** (no separate pitch section):
+  - a **tailored resume**: first a change plan you approve, then the resume. Upload your CV as **.docx** and you get it back **in your own design with your photo** (only the text changes). From a PDF you get a clean ATS version. Strict language check (no EN/DE mixing).
   - a **cold email**, a **cover letter (Anschreiben)** and a **motivation letter**, each in **English and German**
 - **HR contacts**: emails and contact persons that the job ads actually publish (never guessed), plus recruiter search links
+- **Remembers each person**: resume, .docx design and settings are saved in the browser; switch people with the 👤 picker
+- **Meine Bewerbungen · AMS** (always German): weekly table with Firmenname, Beruf, Gefunden über, Bewerbungsdatum and Status; every "I applied" is logged automatically, and you can add offline applications; export to Excel/CSV or a printable Bewerbungsnachweis
 - **Your empire**: each application adds a tower to your skyline (XP, titles from Intern → Mogul, achievements)
 
 You apply manually. Nothing is sent automatically.
